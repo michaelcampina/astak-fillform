@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:;">
+<title>Preenchimento de Requisições de Exame</title>
+<link rel="stylesheet" href="estilo.css">
+</head>
+<body>
+
+<!-- Cabecalho: identidade discreta e estado do modo -->
+<header class="topo">
+  <div class="topo-titulo">
+    <h1>Requisições de Exame</h1>
+    <p>Preenchimento assistido do sistema oficial</p>
+  </div>
+  <div class="topo-acoes">
+    <span id="selo-modo" class="selo" hidden></span>
+    <button id="btn-logs" class="botao-discreto" type="button" title="Abrir a pasta de registros">Registros</button>
+  </div>
+</header>
+
+<main class="conteudo">
+
+  <!-- Etapa 1: entrada da requisicao -->
+  <section class="cartao" id="etapa-entrada">
+    <div class="cartao-cabecalho">
+      <span class="passo">1</span>
+      <h2>Receber a requisição</h2>
+    </div>
+
+    <div class="area-solta" id="area-solta" tabindex="0" role="button"
+         aria-label="Arraste o arquivo da requisição ou clique para escolher">
+      <svg class="area-solta-icone" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 16V4m0 0L8 8m4-4 4 4" fill="none" stroke="currentColor" stroke-width="1.6"
+              stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3" fill="none" stroke="currentColor"
+              stroke-width="1.6" stroke-linecap="round"/>
+      </svg>
+      <p class="area-solta-titulo">Arraste a requisição para cá</p>
+      <p class="area-solta-dica">PDF, PNG ou JPG &middot; ou clique para escolher o arquivo</p>
+    </div>
+
+    <div class="separador"><span>ou</span></div>
+
+    <div class="linha-escanear">
+      <button id="btn-escanear" class="botao botao-principal" type="button">
+        <svg viewBox="0 0 24 24" aria-hidden="true" class="icone-botao">
+          <path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2M4 12h16"
+                fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        </svg>
+        Escanear papel
+      </button>
+      <span id="scanner-status" class="nota"></span>
+    </div>
+  </section>
+
+  <!-- Etapa 2: andamento -->
+  <section class="cartao" id="etapa-andamento" hidden>
+    <div class="cartao-cabecalho">
+      <span class="passo" id="passo-andamento">2</span>
+      <h2 id="andamento-titulo">Processando…</h2>
+    </div>
+    <div class="trilha"><div class="trilha-barra" id="trilha-barra"></div></div>
+    <p class="andamento-detalhe" id="andamento-detalhe">Aguarde.</p>
+  </section>
+
+  <!-- Etapa 3: conferencia dos dados -->
+  <section class="cartao" id="etapa-dados" hidden>
+    <div class="cartao-cabecalho">
+      <span class="passo">2</span>
+      <h2>Conferir os dados extraídos</h2>
+      <span class="selo selo-neutro" id="origem-leitura"></span>
+    </div>
+
+    <p class="aviso-lista" id="avisos-extracao" hidden></p>
+
+    <div class="tabela-envoltorio">
+      <table class="tabela-dados">
+        <thead>
+          <tr><th>Campo</th><th>Valor lido</th></tr>
+        </thead>
+        <tbody id="corpo-dados"></tbody>
+      </table>
+    </div>
+
+    <p class="nota">
+      Pode corrigir qualquer valor acima antes de preencher. O que você alterar
+      aqui é o que vai para o sistema.
+    </p>
+
+    <div class="acoes">
+      <button id="btn-descartar" class="botao botao-secundario" type="button">Descartar</button>
+      <button id="btn-preencher" class="botao botao-principal" type="button">
+        Preencher o sistema
+      </button>
+    </div>
+  </section>
+
+  <!-- Etapa 4: resultado -->
+  <section class="cartao" id="etapa-resultado" hidden>
+    <div class="cartao-cabecalho">
+      <span class="passo passo-ok">3</span>
+      <h2 id="resultado-titulo">Pronto para revisão</h2>
+    </div>
+    <p class="resultado-texto" id="resultado-texto"></p>
+    <div class="acoes">
+      <button id="btn-nova" class="botao botao-principal" type="button">Nova requisição</button>
+    </div>
+  </section>
+
+  <!-- Erro: sempre claro, sem termo tecnico -->
+  <section class="cartao cartao-erro" id="etapa-erro" hidden>
+    <div class="cartao-cabecalho">
+      <span class="passo passo-erro">!</span>
+      <h2 id="erro-titulo">Não foi possível continuar</h2>
+    </div>
+    <p class="resultado-texto" id="erro-texto"></p>
+    <details class="detalhe-tecnico" id="erro-detalhe" hidden>
+      <summary>Detalhes para o suporte</summary>
+      <pre id="erro-detalhe-texto"></pre>
+    </details>
+    <div class="acoes">
+      <button id="btn-erro-voltar" class="botao botao-secundario" type="button">Voltar</button>
+    </div>
+  </section>
+
+</main>
+
+<footer class="rodape">
+  <span id="rodape-estado">Pronto</span>
+  <span id="rodape-versao"></span>
+</footer>
+
+<script src="renderer.js"></script>
+</body>
+</html>

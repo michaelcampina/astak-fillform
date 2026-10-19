@@ -1,0 +1,33 @@
+{
+  "_comentario": [
+    "Gabarito dos testes de extracao.",
+    "Cada chave e um id de config/campos.json e o valor e o esperado apos a formatacao.",
+    "Compare com o relatorio gerado em testes/saida/relatorio-*.md"
+  ],
+  "dados": {
+    "numeroRequisicao": "REQ-2024-0012",
+    "numeroRegistro": "4587/2024",
+    "dataRequisicao": "12/03/2024",
+    "autoridade": "Dra. Fernanda Souza",
+    "orgao": "Ministério Público de São Paulo",
+    "tipoExame": "Corpo de delito",
+    "destinoExame": "IML",
+    "nomeExaminado": "JOÃO DA SILVA",
+    "dataNascimento": "05/07/1980",
+    "nomeMae": "Maria Aparecida da Silva",
+    "nomePai": "José Pereira da Silva",
+    "rg": "123456789",
+    "cpf": "123.456.789-00",
+    "endereco": "Rua das Acácias, 123 — Jardim Primavera",
+    "localFato": "São Paulo — SP",
+    "dataFato": "10/03/2024",
+    "fatos": "O periciado foi encontrado em via pública, apresentando ferimentos compatíveis com ação de terceiros, sendo encaminhado para exame de corpo de delito no instituto médico legal da capital.",
+    "observacoes": "Exame solicitado em caráter de urgência, conforme ofício nº 221/2024."
+  },
+  "tolerancia": {
+    "endereco": "pontuacao",
+    "localFato": "pontuacao",
+    "fatos": "pontuacao",
+    "observacoes": "pontuacao"
+  }
+}

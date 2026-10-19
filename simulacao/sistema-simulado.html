@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sistema Simulado — Cadastro de Requisição de Exame</title>
+<style>
+  :root {
+    --azul: #1f4e79;
+    --azul-claro: #eaf1f8;
+    --cinza: #5b6770;
+    --borda: #cfd8e0;
+    --erro: #b3261e;
+    --ok: #1e6b3a;
+    --fundo: #f4f6f8;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Segoe UI", Roboto, Arial, sans-serif;
+    background: var(--fundo);
+    color: #1b1f23;
+    font-size: 14px;
+  }
+  header {
+    background: var(--azul);
+    color: #fff;
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  header h1 { font-size: 16px; margin: 0; font-weight: 600; letter-spacing: .2px; }
+  header .modo {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .8px;
+    background: rgba(255,255,255,.16);
+    padding: 4px 10px;
+    border-radius: 999px;
+  }
+  main { max-width: 980px; margin: 24px auto 60px; padding: 0 20px; }
+  .abas { display: flex; gap: 4px; border-bottom: 2px solid var(--borda); margin-bottom: 20px; }
+  .abas button {
+    background: transparent;
+    border: 0;
+    border-bottom: 3px solid transparent;
+    padding: 10px 18px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--cinza);
+    cursor: pointer;
+  }
+  .abas button[aria-selected="true"] { color: var(--azul); border-bottom-color: var(--azul); }
+  .painel { display: none; }
+  .painel.ativo { display: block; }
+  fieldset {
+    border: 1px solid var(--borda);
+    border-radius: 6px;
+    background: #fff;
+    padding: 18px 20px 22px;
+    margin: 0 0 20px;
+  }
+  legend { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: var(--azul); padding: 0 6px; }
+  .linha { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 14px; }
+  .linha.unica { grid-template-columns: 1fr; }
+  label { display: block; font-size: 12px; font-weight: 600; color: var(--cinza); margin-bottom: 5px; }
+  input, textarea, select {
+    width: 100%;
+    padding: 8px 10px;
+    font-family: inherit;
+    font-size: 13px;
+    color: #1b1f23;
+    border: 1px solid var(--borda);
+    border-radius: 4px;
+    background: #fff;
+  }
+  input:focus, textarea:focus, select:focus { outline: 2px solid #9dc0e0; border-color: var(--azul); }
+  textarea { min-height: 86px; resize: vertical; }
+
+  /* Caixa seletora pesquisavel: input + lista flutuante */
+  .combo { position: relative; }
+  .combo input { padding-right: 30px; }
+  .combo .seta {
+    position: absolute; right: 10px; top: 30px; pointer-events: none;
+    color: var(--cinza); font-size: 10px;
+  }
+  .combo ul {
+    position: absolute; z-index: 20; left: 0; right: 0; top: calc(100% + 2px);
+    margin: 0; padding: 4px 0; list-style: none;
+    background: #fff; border: 1px solid var(--borda); border-radius: 4px;
+    box-shadow: 0 6px 18px rgba(16,32,48,.14);
+    max-height: 190px; overflow-y: auto;
+    display: none;
+  }
+  .combo ul.aberta { display: block; }
+  .combo li { padding: 7px 12px; cursor: pointer; }
+  .combo li:hover, .combo li[aria-selected="true"] { background: var(--azul-claro); }
+  .combo li[aria-selected="true"] { font-weight: 600; color: var(--azul); }
+  .combo li.vazio { color: var(--cinza); cursor: default; font-style: italic; }
+
+  .rodape {
+    position: sticky; bottom: 0; background: #fff;
+    border-top: 1px solid var(--borda);
+    padding: 14px 24px; display: flex; gap: 10px; justify-content: flex-end;
+    max-width: 980px; margin: 0 auto; border-radius: 6px 6px 0 0;
+  }
+  .btn { border: 0; border-radius: 4px; padding: 10px 20px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; }
+  .btn-secundario { background: #e8edf2; color: #33475b; }
+  .btn-primario { background: var(--azul); color: #fff; }
+  .aviso-teste {
+    background: #fff8e1; border: 1px solid #f0d585; color: #6b5400;
+    padding: 10px 14px; border-radius: 4px; font-size: 12px; margin-bottom: 18px;
+  }
+  #resultado { margin-top: 14px; font-size: 13px; }
+  #resultado.ok { color: var(--ok); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Sistema de Cadastro de Requisições de Exame</h1>
+  <span class="modo">Ambiente de simulação</span>
+</header>
+
+<main>
+  <p class="aviso-teste">
+    Esta é uma página de simulação. Ela reproduz os campos, abas e seletores do sistema oficial
+    apenas para testar a ferramenta. Nenhum dado é enviado para lugar algum.
+  </p>
+
+  <form id="form-requisicao" novalidate>
+    <div class="abas" role="tablist">
+      <button type="button" role="tab" data-aba="requisicao" aria-selected="true">Requisição</button>
+      <button type="button" role="tab" data-aba="examinado" aria-selected="false">Examinado</button>
+      <button type="button" role="tab" data-aba="fatos" aria-selected="false">Fatos</button>
+    </div>
+
+    <!-- ===================== ABA 1: REQUISICAO ===================== -->
+    <section class="painel ativo" id="painel-requisicao" role="tabpanel">
+      <fieldset>
+        <legend>Dados da requisição</legend>
+
+        <div class="linha">
+          <div class="combo" id="orgao-container">
+            <label for="orgao">Órgão requisitante</label>
+            <input id="orgao" name="orgao" type="text" autocomplete="off" role="combobox"
+                   aria-autocomplete="list" aria-expanded="false" aria-controls="orgao-opcoes">
+            <span class="seta" aria-hidden="true">▼</span>
+            <ul id="orgao-opcoes" role="listbox" aria-label="Órgãos disponíveis"></ul>
+          </div>
+
+          <div class="combo" id="autoridade-container">
+            <label for="autoridade">Autoridade requisitante</label>
+            <input id="autoridade" name="autoridade" type="text" autocomplete="off" role="combobox"
+                   aria-autocomplete="list" aria-expanded="false" aria-controls="autoridade-opcoes">
+            <span class="seta" aria-hidden="true">▼</span>
+            <ul id="autoridade-opcoes" role="listbox" aria-label="Autoridades disponíveis"></ul>
+          </div>
+        </div>
+
+        <div class="linha">
+          <div>
+            <label for="numeroRequisicao">Número da requisição</label>
+            <input id="numeroRequisicao" name="numeroRequisicao" type="text" autocomplete="off">
+          </div>
+          <div>
+            <label for="numeroRegistro">Número de registro</label>
+            <input id="numeroRegistro" name="numeroRegistro" type="text" autocomplete="off">
+          </div>
+        </div>
+
+        <div class="linha">
+          <div>
+            <label for="dataRequisicao">Data da requisição</label>
+            <input id="dataRequisicao" name="dataRequisicao" type="text" placeholder="DD/MM/AAAA" autocomplete="off">
+          </div>
+          <div>
+            <label for="tipoExame">Tipo de exame</label>
+            <input id="tipoExame" name="tipoExame" type="text" autocomplete="off">
+          </div>
+        </div>
+
+        <div class="linha">
+          <div>
+            <label for="destinoExame">Destino do exame</label>
+            <select id="destinoExame" name="destinoExame">
+              <option value="">Selecione...</option>
+              <option value="IML">Instituto Médico Legal</option>
+              <option value="DML">Departamento Médico Legal</option>
+              <option value="HOSPITAL">Hospital de referência</option>
+              <option value="OUTRO">Outro destino</option>
+            </select>
+          </div>
+          <div></div>
+        </div>
+      </fieldset>
+    </section>
+
+    <!-- ===================== ABA 2: EXAMINADO ===================== -->
+    <section class="painel" id="painel-examinado" role="tabpanel">
+      <fieldset>
+        <legend>Dados do examinado</legend>
+
+        <div class="linha unica">
+          <div>
+            <label for="nomeExaminado">Nome do examinado</label>
+            <input id="nomeExaminado" name="nomeExaminado" type="text" autocomplete="off">
+          </div>
+        </div>
+
+        <div class="linha">
+          <div>
+            <label for="dataNascimento">Data de nascimento</label>
+            <input id="dataNascimento" name="dataNascimento" type="text" placeholder="DD/MM/AAAA" autocomplete="off">
+          </div>
+          <div>
+            <label for="rg">RG</label>
+            <input id="rg" name="rg" type="text" autocomplete="off">
+          </div>
+        </div>
+
+        <div class="linha">
+          <div>
+            <label for="cpf">CPF</label>
+            <input id="cpf" name="cpf" type="text" autocomplete="off">
+          </div>
+          <div>
+            <label for="nomeMae">Nome da mãe</label>
+            <input id="nomeMae" name="nomeMae" type="text" autocomplete="off">
+          </div>
+        </div>
+
+        <div class="linha unica">
+          <div>
+            <label for="nomePai">Nome do pai</label>
+            <input id="nomePai" name="nomePai" type="text" autocomplete="off">
+          </div>
+        </div>
+
+        <div class="linha unica">
+          <div>
+            <label for="endereco">Endereço</label>
+            <textarea id="endereco" name="endereco"></textarea>
+          </div>
+        </div>
+      </fieldset>
+    </section>
+
+    <!-- ===================== ABA 3: FATOS ===================== -->
+    <section class="painel" id="painel-fatos" role="tabpanel">
+      <fieldset>
+        <legend>Fatos e circunstâncias</legend>
+
+        <div class="linha">
+          <div>
+            <label for="localFato">Local do fato</label>
+            <input id="localFato" name="localFato" type="text" autocomplete="off">
+          </div>
+          <div>
+            <label for="dataFato">Data do fato</label>
+            <input id="dataFato" name="dataFato" type="text" placeholder="DD/MM/AAAA" autocomplete="off">
+          </div>
+        </div>
+
+        <div class="linha unica">
+          <div>
+            <label for="fatos">Descrição dos fatos</label>
+            <textarea id="fatos" name="fatos"></textarea>
+          </div>
+        </div>
+
+        <div class="linha unica">
+          <div>
+            <label for="observacoes">Observações</label>
+            <textarea id="observacoes" name="observacoes"></textarea>
+          </div>
+        </div>
+      </fieldset>
+    </section>
+  </form>
+
+  <div id="resultado" role="status" aria-live="polite"></div>
+</main>
+
+<!--
+  ATENCAO: estes botoes existem de proposito. A ferramenta de preenchimento
+  NUNCA deve clicar neles. Sao clicados apenas pelo operador, manualmente.
+  Os testes automatizados verificam que nenhum clique programatico acontece.
+-->
+<div class="rodape">
+  <button type="button" class="btn btn-secundario" id="btn-cancelar">Cancelar</button>
+  <button type="button" class="btn btn-secundario" id="btn-salvar">Salvar rascunho</button>
+  <button type="button" class="btn btn-secundario" id="btn-enviar">Enviar para análise</button>
+  <button type="button" class="btn btn-secundario" id="btn-finalizar">Finalizar</button>
+  <button type="button" class="btn btn-primario" id="btn-cadastrar">Cadastrar</button>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  // ---------------- Dados das listas (simulam o cadastro do sistema) ----------------
+  var ORGAOS = [
+    'Instituto Médico Legal de São Paulo',
+    'Instituto Médico Legal do Rio de Janeiro',
+    'Departamento Médico Legal de Minas Gerais',
+    'Instituto de Criminalística do Paraná',
+    'Ministério Público de São Paulo',
+    'Ministério Público do Rio de Janeiro',
+    'Polícia Civil de Santa Catarina',
+    'Polícia Federal - Superintendência Regional'
+  ];
+
+  var AUTORIDADES = [
+    'Delegado de Polícia Dr. Ricardo Almeida',
+    'Delegada de Polícia Dra. Fernanda Souza',
+    'Perito Médico Legista Dr. João Batista',
+    'Perita Médica Legista Dra. Cláudia Menezes',
+    'Juiz de Direito Dr. Marcelo Tavares',
+    'Promotor de Justiça Dr. Fernando Costa',
+    'Dra. Fernanda Souza'
+  ];
+
+  /**
+   * Combo pesquisavel: mesmo comportamento do sistema oficial.
+   * Digitar filtra; clicar na opcao seleciona; Enter tambem seleciona a
+   * primeira opcao (a ferramenta nao usa Enter, mas usuarios usam).
+   */
+  function criarCombo(idCampo, idLista, itens) {
+    var campo = document.getElementById(idCampo);
+    var lista = document.getElementById(idLista);
+    var valorSelecionado = '';
+
+    function opcoesFiltradas() {
+      var filtro = campo.value.trim().toLowerCase();
+      return itens.filter(function (item) {
+        return filtro === '' || item.toLowerCase().indexOf(filtro) !== -1;
+      });
+    }
+
+    function renderizar() {
+      var encontrados = opcoesFiltradas();
+      lista.innerHTML = '';
+
+      if (encontrados.length === 0) {
+        var vazio = document.createElement('li');
+        vazio.className = 'vazio';
+        vazio.textContent = 'Nenhuma opção encontrada';
+        lista.appendChild(vazio);
+        return;
+      }
+
+      encontrados.forEach(function (item) {
+        var li = document.createElement('li');
+        li.setAttribute('role', 'option');
+        li.setAttribute('data-valor', item);
+        li.textContent = item;
+        if (item === valorSelecionado) {
+          li.setAttribute('aria-selected', 'true');
+        }
+        li.addEventListener('mousedown', function (evento) {
+          evento.preventDefault(); // evita perder o foco antes do clique
+        });
+        li.addEventListener('click', function () {
+          valorSelecionado = item;
+          campo.value = item;
+          fechar();
+          campo.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+        lista.appendChild(li);
+      });
+    }
+
+    function abrir() {
+      renderizar();
+      lista.classList.add('aberta');
+      campo.setAttribute('aria-expanded', 'true');
+    }
+
+    function fechar() {
+      lista.classList.remove('aberta');
+      campo.setAttribute('aria-expanded', 'false');
+    }
+
+    campo.addEventListener('focus', abrir);
+    campo.addEventListener('click', abrir);
+    campo.addEventListener('input', function () {
+      valorSelecionado = '';
+      abrir();
+    });
+    campo.addEventListener('keydown', function (evento) {
+      if (evento.key === 'Enter') {
+        var primeira = lista.querySelector('li[role="option"]');
+        if (primeira) {
+          evento.preventDefault();
+          primeira.click();
+        }
+      } else if (evento.key === 'Escape') {
+        fechar();
+      }
+    });
+    campo.addEventListener('blur', function () {
+      window.setTimeout(fechar, 120);
+    });
+  }
+
+  criarCombo('orgao', 'orgao-opcoes', ORGAOS);
+  criarCombo('autoridade', 'autoridade-opcoes', AUTORIDADES);
+
+  // ---------------- Abas ----------------
+  var botoesAba = document.querySelectorAll('.abas button[role="tab"]');
+  botoesAba.forEach(function (botao) {
+    botao.addEventListener('click', function () {
+      var alvo = botao.getAttribute('data-aba');
+      botoesAba.forEach(function (outro) {
+        outro.setAttribute('aria-selected', String(outro === botao));
+      });
+      document.querySelectorAll('.painel').forEach(function (painel) {
+        painel.classList.toggle('ativo', painel.id === 'painel-' + alvo);
+      });
+    });
+  });
+
+  // ---------------- Botoes de envio (somente o operador usa) ----------------
+  var resultado = document.getElementById('resultado');
+
+  function contarPreenchidos() {
+    var campos = document.querySelectorAll('#form-requisicao input, #form-requisicao textarea, #form-requisicao select');
+    var preenchidos = 0;
+    campos.forEach(function (campo) {
+      if (campo.value && campo.value.trim() !== '') preenchidos += 1;
+    });
+    return { preenchidos: preenchidos, total: campos.length };
+  }
+
+  document.getElementById('btn-cadastrar').addEventListener('click', function () {
+    var contagem = contarPreenchidos();
+    resultado.className = 'ok';
+    resultado.textContent = 'Cadastro simulado concluído com ' + contagem.preenchidos + ' de ' + contagem.total + ' campos preenchidos. (Na simulação nada é enviado.)';
+    window.__simulacaoCadastrada = true;
+  });
+
+  document.getElementById('btn-cancelar').addEventListener('click', function () {
+    resultado.className = '';
+    resultado.textContent = 'Operação cancelada pelo operador.';
+    window.__simulacaoCadastrada = false;
+  });
+
+  // Botoes alternativos de envio. Existem para provar que o protetor da
+  // ferramenta reconhece e bloqueia QUALQUER botao com sentido de envio, nao
+  // apenas o "Cadastrar". Nenhum deles grava nada.
+  [
+    ['btn-salvar', 'Os dados ficaram em rascunho (simulação). A ferramenta não deveria ter clicado aqui.'],
+    ['btn-enviar', 'Envio para análise simulado. A ferramenta não deveria ter clicado aqui.'],
+    ['btn-finalizar', 'Finalização simulada. A ferramenta não deveria ter clicado aqui.'],
+  ].forEach(function (par) {
+    var botao = document.getElementById(par[0]);
+    if (!botao) return;
+    botao.addEventListener('click', function () {
+      resultado.className = 'aviso';
+      resultado.textContent = par[1];
+    });
+  });
+
+  // Marcador usado pelos testes: permite detectar clique programatico indevido.
+  // Conta todos os botoes de envio, inclusive os alternativos.
+  window.__cliquesDeEnvio = 0;
+  ['btn-cadastrar', 'btn-cancelar', 'btn-salvar', 'btn-enviar', 'btn-finalizar'].forEach(function (id) {
+    var botao = document.getElementById(id);
+    if (!botao) return;
+    botao.addEventListener('click', function (evento) {
+      // 0 = clique do operador (real) | 1 = clique simulado pela ferramenta.
+      if (evento.isTrusted === false) {
+        window.__cliquesDeEnvio += 1;
+      }
+    }, true);
+  });
+})();
+</script>
+</body>
+</html>

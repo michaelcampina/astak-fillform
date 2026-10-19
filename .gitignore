@@ -1,0 +1,23 @@
+# Dependencias e caches locais
+node_modules/
+.npm-cache/
+.electron-cache/
+
+# Perfil do navegador da ferramenta: contem cookies de sessao do sistema.
+# NUNCA versionar.
+perfis/
+
+# Registros de auditoria locais
+logs/
+
+# Relatorios de teste gerados
+testes/saida/
+
+# Idioma do OCR e baixado por `npm run idioma-ocr`
+recursos/tessdata/*.traineddata
+recursos/tessdata/*.gz
+
+# Arquivos temporarios de desenvolvimento
+.tmp-*
+tmp-*
+*.log

@@ -1,0 +1,169 @@
+{
+  "_comentario": [
+    "Seletores do formulario. Trocar aqui quando o layout do sistema oficial mudar.",
+    "Dois blocos: 'simulacao' (MODO_TESTE=true) e 'sistemaOficial' (MODO_TESTE=false).",
+    "Tipos de campo aceitos:",
+    "  texto          -> input comum (id/name).",
+    "  areaTexto      -> textarea.",
+    "  selectNativo   -> elemento <select> (usa selectOption).",
+    "  caixaPesquisavel -> input que filtra uma lista de opcoes (NAO e <select>).",
+    "Nunca inclua aqui um seletor de botao de envio. A ferramenta recusa a configuracao se detectar."
+  ],
+
+  "simulacao": {
+    "url": "file:///__DIRETORIO_SIMULACAO__/sistema-simulado.html",
+    "seletorPronto": "#form-requisicao",
+    "abas": [
+      {
+        "id": "requisicao",
+        "descricao": "Requisicao",
+        "seletorAba": "button[data-aba='requisicao']",
+        "seletorPainel": "#painel-requisicao",
+        "campos": [
+          {
+            "campo": "orgao",
+            "tipo": "caixaPesquisavel",
+            "seletor": "#orgao",
+            "seletorLista": "#orgao-opcoes",
+            "seletorOpcoes": "#orgao-opcoes li[role='option']",
+            "modoCorrespondencia": "exata",
+            "valorVerificacao": "textoOpcao"
+          },
+          { "campo": "numeroRequisicao", "tipo": "texto", "seletor": "#numeroRequisicao" },
+          { "campo": "numeroRegistro", "tipo": "texto", "seletor": "#numeroRegistro" },
+          { "campo": "dataRequisicao", "tipo": "texto", "seletor": "#dataRequisicao" },
+          {
+            "campo": "autoridade",
+            "tipo": "caixaPesquisavel",
+            "seletor": "#autoridade",
+            "seletorLista": "#autoridade-opcoes",
+            "seletorOpcoes": "#autoridade-opcoes li[role='option']",
+            "modoCorrespondencia": "exata",
+            "valorVerificacao": "textoOpcao"
+          },
+          { "campo": "tipoExame", "tipo": "texto", "seletor": "#tipoExame" },
+          { "campo": "destinoExame", "tipo": "selectNativo", "seletor": "#destinoExame" }
+        ]
+      },
+      {
+        "id": "examinado",
+        "descricao": "Examinado",
+        "seletorAba": "button[data-aba='examinado']",
+        "seletorPainel": "#painel-examinado",
+        "campos": [
+          { "campo": "nomeExaminado", "tipo": "texto", "seletor": "#nomeExaminado" },
+          { "campo": "dataNascimento", "tipo": "texto", "seletor": "#dataNascimento" },
+          { "campo": "rg", "tipo": "texto", "seletor": "#rg" },
+          { "campo": "cpf", "tipo": "texto", "seletor": "#cpf" },
+          { "campo": "nomeMae", "tipo": "texto", "seletor": "#nomeMae" },
+          { "campo": "nomePai", "tipo": "texto", "seletor": "#nomePai" },
+          { "campo": "endereco", "tipo": "areaTexto", "seletor": "#endereco" }
+        ]
+      },
+      {
+        "id": "fatos",
+        "descricao": "Fatos",
+        "seletorAba": "button[data-aba='fatos']",
+        "seletorPainel": "#painel-fatos",
+        "campos": [
+          { "campo": "localFato", "tipo": "texto", "seletor": "#localFato" },
+          { "campo": "dataFato", "tipo": "texto", "seletor": "#dataFato" },
+          { "campo": "fatos", "tipo": "areaTexto", "seletor": "#fatos" },
+          { "campo": "observacoes", "tipo": "areaTexto", "seletor": "#observacoes" }
+        ]
+      }
+    ],
+    "_protetor": {
+      "_comentario": "Nunca clicar, digitar ou pressionar Enter nestes elementos. Verificacao feita antes de cada clique.",
+      "seletoresProibidos": [
+        "#btn-cadastrar",
+        "#btn-finalizar",
+        "#btn-enviar",
+        "#btn-salvar",
+        "button[type='submit']",
+        "input[type='submit']"
+      ],
+      "textosProibidos": ["cadastrar", "finalizar", "enviar", "salvar", "gravar", "confirmar", "concluir"]
+    }
+  },
+
+  "sistemaOficial": {
+    "_comentario": [
+      "PREENCHER com os dados reais do sistema interno.",
+      "Enquanto existir qualquer 'SUBSTITUIR' neste bloco, a ferramenta se recusa a abrir o navegador.",
+      "O bloco abaixo espelha os 18 campos de campos.json e as mesmas 3 abas da simulacao:",
+      "se o sistema oficial tiver outra divisao em abas, mova os campos para as abas certas."
+    ],
+    "url": "http://SUBSTITUIR-PELO-ENDERECO-DO-SISTEMA-OFICIAL/",
+    "seletorPronto": "#SUBSTITUIR-PELO-SELETOR-DA-PAGINA-PRONTA",
+    "abas": [
+      {
+        "id": "requisicao",
+        "descricao": "Dados da requisicao",
+        "seletorAba": "#SUBSTITUIR-ABA-1",
+        "seletorPainel": "#SUBSTITUIR-PAINEL-1",
+        "campos": [
+          {
+            "campo": "orgao",
+            "tipo": "caixaPesquisavel",
+            "seletor": "#SUBSTITUIR-CAMPO-ORGAO",
+            "seletorLista": "#SUBSTITUIR-LISTA-ORGAO",
+            "seletorOpcoes": "#SUBSTITUIR-LISTA-ORGAO li",
+            "modoCorrespondencia": "exata",
+            "valorVerificacao": "textoOpcao"
+          },
+          { "campo": "numeroRequisicao", "tipo": "texto", "seletor": "#SUBSTITUIR-CAMPO-NUMERO-REQUISICAO" },
+          { "campo": "numeroRegistro", "tipo": "texto", "seletor": "#SUBSTITUIR-CAMPO-NUMERO-REGISTRO" },
+          { "campo": "dataRequisicao", "tipo": "texto", "seletor": "#SUBSTITUIR-CAMPO-DATA-REQUISICAO" },
+          {
+            "campo": "autoridade",
+            "tipo": "caixaPesquisavel",
+            "seletor": "#SUBSTITUIR-CAMPO-AUTORIDADE",
+            "seletorLista": "#SUBSTITUIR-LISTA-AUTORIDADE",
+            "seletorOpcoes": "#SUBSTITUIR-LISTA-AUTORIDADE li",
+            "modoCorrespondencia": "exata",
+            "valorVerificacao": "textoOpcao"
+          },
+          { "campo": "tipoExame", "tipo": "texto", "seletor": "#SUBSTITUIR-CAMPO-TIPO-EXAME" },
+          { "campo": "destinoExame", "tipo": "selectNativo", "seletor": "#SUBSTITUIR-CAMPO-DESTINO" }
+        ]
+      },
+      {
+        "id": "examinado",
+        "descricao": "Examinado",
+        "seletorAba": "#SUBSTITUIR-ABA-2",
+        "seletorPainel": "#SUBSTITUIR-PAINEL-2",
+        "campos": [
+          { "campo": "nomeExaminado", "tipo": "texto", "seletor": "#SUBSTITUIR-CAMPO-NOME" },
+          { "campo": "dataNascimento", "tipo": "texto", "seletor": "#SUBSTITUIR-CAMPO-NASCIMENTO" },
+          { "campo": "rg", "tipo": "texto", "seletor": "#SUBSTITUIR-CAMPO-RG" },
+          { "campo": "cpf", "tipo": "texto", "seletor": "#SUBSTITUIR-CAMPO-CPF" },
+          { "campo": "nomeMae", "tipo": "texto", "seletor": "#SUBSTITUIR-CAMPO-MAE" },
+          { "campo": "nomePai", "tipo": "texto", "seletor": "#SUBSTITUIR-CAMPO-PAI" },
+          { "campo": "endereco", "tipo": "areaTexto", "seletor": "#SUBSTITUIR-CAMPO-ENDERECO" }
+        ]
+      },
+      {
+        "id": "fatos",
+        "descricao": "Fatos",
+        "seletorAba": "#SUBSTITUIR-ABA-3",
+        "seletorPainel": "#SUBSTITUIR-PAINEL-3",
+        "campos": [
+          { "campo": "localFato", "tipo": "texto", "seletor": "#SUBSTITUIR-CAMPO-LOCAL-FATO" },
+          { "campo": "dataFato", "tipo": "texto", "seletor": "#SUBSTITUIR-CAMPO-DATA-FATO" },
+          { "campo": "fatos", "tipo": "areaTexto", "seletor": "#SUBSTITUIR-CAMPO-FATOS" },
+          { "campo": "observacoes", "tipo": "areaTexto", "seletor": "#SUBSTITUIR-CAMPO-OBSERVACOES" }
+        ]
+      }
+    ],
+    "_protetor": {
+      "seletoresProibidos": [
+        "#SUBSTITUIR-BOTAO-CADASTRAR",
+        "#SUBSTITUIR-BOTAO-FINALIZAR",
+        "button[type='submit']",
+        "input[type='submit']"
+      ],
+      "textosProibidos": ["cadastrar", "finalizar", "enviar", "salvar", "gravar", "confirmar", "concluir"]
+    }
+  }
+}

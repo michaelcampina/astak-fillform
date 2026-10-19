@@ -1,0 +1,30 @@
+{
+  "name": "preenchedor-requisicao-exame",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Ferramenta local de leitura de requisicoes de exame e preenchimento assistido do sistema oficial",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "node testes/executar-teste.js --tudo",
+    "teste": "node testes/executar-teste.js --tudo",
+    "teste:extracao": "node testes/executar-teste.js --extracao",
+    "teste:preenchimento": "node testes/executar-teste.js --preenchimento",
+    "teste:janela": "node testes/iniciar-teste-janela.js",
+    "exemplos": "node testes/gerar-exemplos.js",
+    "idioma-ocr": "node testes/baixar-idioma-ocr.js"
+  },
+  "dependencies": {
+    "@napi-rs/canvas": "^0.1.44",
+    "pdfjs-dist": "^4.2.67",
+    "playwright": "^1.44.0",
+    "tesseract.js": "^5.0.5"
+  },
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "pdf-lib": "^1.17.1"
+  },
+  "engines": {
+    "node": ">=18.17.0"
+  }
+}

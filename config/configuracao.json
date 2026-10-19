@@ -1,0 +1,54 @@
+{
+  "_comentario": "Configuracao geral da ferramenta. Nada aqui exige alterar codigo.",
+
+  "MODO_TESTE": true,
+
+  "idiomaOcr": "por",
+  "caminhoTessdata": "recursos/tessdata",
+
+  "extracao": {
+    "escalaRenderizacao": 2.5,
+    "paginasMaximas": 5,
+    "confiancaMinimaOcr": 55,
+    "minimoCaracteresTextoDigital": 120,
+    "_comentarioPadroesDeParada": [
+      "Linhas que encerram a captura de um campo multilinha (ex.: 'Fatos').",
+      "Servem para o rodape, a numeracao de pagina e a assinatura nao entrarem no texto do campo.",
+      "Sao expressoes regulares aplicadas sobre a linha sem acento e em caixa alta."
+    ],
+    "padroesDeParada": [
+      "^(PAGINA|PAG\\.?|FOLHA)\\s*\\d",
+      "^\\d+\\s*(DE|/)\\s*\\d+$",
+      "^(DOCUMENTO FICTICIO|DOCUMENTO GERADO|NAO CONTEM DADOS REAIS)",
+      "^(ASSINATURA|ASSINADO|CARIMBO)\\b",
+      "^(RUA|RUA DAS|AVENIDA|AV\\.)\\s"
+    ]
+  },
+
+  "navegador": {
+    "_comentario": "perfil: pasta do Chrome dedicado da ferramenta. O operador faz login uma unica vez nesse perfil e a sessao fica salva.",
+    "perfil": "perfis/chrome-operador",
+    "canaisPermitidos": ["chrome", "msedge", "chromium"],
+    "headless": false,
+    "timeoutPadraoMs": 20000,
+    "esperaEstabilizacaoMs": 300
+  },
+
+  "scanner": {
+    "_comentario": "controlador 'wia-powershell' usa o WIA do Windows via COM, sem abrir nenhum aplicativo.",
+    "controlador": "wia-powershell",
+    "dpi": 300,
+    "modoCor": 2,
+    "timeoutMs": 180000
+  },
+
+  "registro": {
+    "diretorio": "logs",
+    "nivel": "INFO"
+  },
+
+  "testes": {
+    "gabarito": "testes/fixtures/gabarito.json",
+    "diretorioSaida": "testes/saida"
+  }
+}

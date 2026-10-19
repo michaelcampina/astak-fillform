@@ -1,0 +1,150 @@
+{
+  "_comentario": [
+    "Campos extraidos da requisicao de exame (layout fixo).",
+    "Cada campo e localizado por ROTULO no texto extraido do PDF/OCR.",
+    "multilinha: true  -> captura as linhas seguintes ate encontrar outro rotulo conhecido.",
+    "regexCaptura      -> aplica regex sobre o valor bruto; usa o grupo 1 se existir, senao o match inteiro.",
+    "formato           -> nome da regra em config/formatacao.json.",
+    "obrigatorio       -> se faltar, a extracao FALHA (a ferramenta para e avisa o operador)."
+  ],
+
+  "campos": [
+    {
+      "id": "numeroRequisicao",
+      "descricao": "Numero da requisicao",
+      "rotulos": ["Numero da Requisicao", "Nº da Requisição", "No. da Requisicao", "Requisicao nº"],
+      "formato": "codigo",
+      "regexCaptura": "([A-Z]{2,6}[-\\s]?\\d{2,6}(?:[-\\s]?\\d{2,6})*)",
+      "obrigatorio": true
+    },
+    {
+      "id": "numeroRegistro",
+      "descricao": "Numero de registro",
+      "rotulos": ["Numero de Registro", "Nº de Registro", "Registro nº"],
+      "formato": "codigo",
+      "regexCaptura": "(\\d{2,6}[/-]?\\d{2,8})",
+      "obrigatorio": true
+    },
+    {
+      "id": "dataRequisicao",
+      "descricao": "Data da requisicao",
+      "rotulos": ["Data da Requisicao", "Data da Requisição", "Data do Pedido"],
+      "formato": "data",
+      "regexCaptura": "(\\d{1,4}[/.\\-]\\d{1,2}[/.\\-]\\d{1,4})",
+      "obrigatorio": true
+    },
+    {
+      "id": "autoridade",
+      "descricao": "Autoridade requisitante",
+      "rotulos": ["Autoridade Requisitante", "Autoridade", "Requisitante"],
+      "formato": "nome",
+      "obrigatorio": true
+    },
+    {
+      "id": "orgao",
+      "descricao": "Orgao requisitante",
+      "rotulos": ["Orgao", "Órgão", "Orgao Requisitante"],
+      "formato": "texto",
+      "obrigatorio": true
+    },
+    {
+      "id": "destinoExame",
+      "descricao": "Destino do exame",
+      "rotulos": ["Destino do Exame", "Destino"],
+      "formato": "texto",
+      "obrigatorio": true
+    },
+    {
+      "id": "tipoExame",
+      "descricao": "Tipo de exame",
+      "rotulos": ["Tipo de Exame", "Exame"],
+      "formato": "texto",
+      "obrigatorio": false
+    },
+    {
+      "id": "nomeExaminado",
+      "descricao": "Nome do examinado",
+      "rotulos": ["Examinado", "Nome do Examinado", "Periciado"],
+      "formato": "nome",
+      "obrigatorio": true
+    },
+    {
+      "id": "dataNascimento",
+      "descricao": "Data de nascimento",
+      "rotulos": ["Data de Nascimento", "Nascimento"],
+      "formato": "data",
+      "regexCaptura": "(\\d{1,4}[/.\\-]\\d{1,2}[/.\\-]\\d{1,4})",
+      "obrigatorio": true
+    },
+    {
+      "id": "nomeMae",
+      "descricao": "Nome da mae",
+      "rotulos": ["Nome da Mae", "Nome da Mãe", "Mae", "Mãe"],
+      "formato": "nome",
+      "obrigatorio": false
+    },
+    {
+      "id": "nomePai",
+      "descricao": "Nome do pai",
+      "rotulos": ["Nome do Pai", "Pai"],
+      "formato": "nome",
+      "obrigatorio": false
+    },
+    {
+      "id": "rg",
+      "descricao": "RG",
+      "rotulos": ["RG", "R.G.", "Documento de Identidade", "Identidade"],
+      "formato": "rg",
+      "regexCaptura": "([\\dXx.\\-\\s]{5,20})",
+      "obrigatorio": true
+    },
+    {
+      "id": "cpf",
+      "descricao": "CPF",
+      "rotulos": ["CPF", "C.P.F."],
+      "formato": "cpf",
+      "obrigatorio": true
+    },
+    {
+      "id": "endereco",
+      "descricao": "Endereco do examinado",
+      "rotulos": ["Endereco", "Endereço", "Residencia", "Residência"],
+      "formato": "texto",
+      "obrigatorio": true
+    },
+    {
+      "id": "localFato",
+      "descricao": "Local do fato",
+      "rotulos": ["Local do Fato", "Local"],
+      "formato": "texto",
+      "obrigatorio": true
+    },
+    {
+      "id": "dataFato",
+      "descricao": "Data do fato",
+      "rotulos": ["Data do Fato", "Data do Ocorrido"],
+      "formato": "data",
+      "regexCaptura": "(\\d{1,4}[/.\\-]\\d{1,2}[/.\\-]\\d{1,4})",
+      "obrigatorio": true
+    },
+    {
+      "id": "fatos",
+      "descricao": "Descricao dos fatos",
+      "rotulos": ["Fatos", "Historico", "Histórico", "Descricao dos Fatos"],
+      "formato": "textoLongo",
+      "multilinha": true,
+      "linhasMaximas": 12,
+      "obrigatorio": true
+    },
+    {
+      "id": "observacoes",
+      "descricao": "Observacoes",
+      "rotulos": ["Observacoes", "Observações", "Obs"],
+      "formato": "textoLongo",
+      "multilinha": true,
+      "linhasMaximas": 6,
+      "valorNaLinhaSeguinte": true,
+      "obrigatorio": false
+    }
+  ]
+}

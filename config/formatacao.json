@@ -1,0 +1,53 @@
+{
+  "_comentario": [
+    "Regras de formatacao e validacao aplicadas ao valor extraido antes do preenchimento.",
+    "Uma regra que nao consegue formatar o valor FALHA a extracao: a ferramenta para e avisa,",
+    "em vez de preencher dado duvidoso. Ajuste as opcoes abaixo conforme a necessidade."
+  ],
+
+  "data": {
+    "descricao": "Data no padrao DD/MM/AAAA",
+    "formatoSaida": "DD/MM/AAAA",
+    "aceitarEntrada": ["DD/MM/AAAA", "DD-MM-AAAA", "DD.MM.AAAA", "AAAA-MM-DD"],
+    "validarCalendario": true
+  },
+
+  "cpf": {
+    "descricao": "CPF no padrao 000.000.000-00",
+    "formatoSaida": "000.000.000-00",
+    "exigirDigitos": 11,
+    "validarDigitoVerificador": false,
+    "_notaValidacao": "Ligado por padrao em 'false' para nao travar em casos reais de CPF informado errado no papel. Ative se o orgao exigir."
+  },
+
+  "rg": {
+    "descricao": "RG sem pontuacao, digito X preservado em maiuscula",
+    "formatoSaida": "somente-digitos-e-X",
+    "removerSeparadores": true,
+    "maiusculas": true
+  },
+
+  "codigo": {
+    "descricao": "Codigo alfanumerico em maiusculas, espacos internos reduzidos",
+    "maiusculas": true,
+    "compactarEspacos": true
+  },
+
+  "nome": {
+    "descricao": "Nome proprio com espacos normalizados, sem alterar caixa",
+    "compactarEspacos": true,
+    "removerEspacosExtremos": true
+  },
+
+  "texto": {
+    "descricao": "Texto curto em linha unica",
+    "compactarEspacos": true
+  },
+
+  "textoLongo": {
+    "descricao": "Texto multilinha preservado, hifenizacao de fim de linha corrigida",
+    "compactarEspacos": true,
+    "corrigirHifenizacao": true,
+    "preservarQuebrasDeLinha": false
+  }
+}
