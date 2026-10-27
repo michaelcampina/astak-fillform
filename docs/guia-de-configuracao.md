@@ -178,7 +178,12 @@ Diz onde cada campo está na tela do sistema.
 {
   "simulacao": {
     "url": "file:///__DIRETORIO_SIMULACAO__/sistema-simulado.html",
-    "seletorPronto": "#form-requisicao",
+    "seletorPronto": "#form-laudo",
+    "regraNic": {
+      "seletorExame": "#exame",
+      "valorExame": "NECROPSIA",
+      "seletorNic": "#nic"
+    },
     "abas": [ ... ]
   },
   "sistemaOficial": { "abas": [ ... ] }
@@ -216,11 +221,34 @@ abertura e recusa iniciar se algo estiver inconsistente.
 | `seletorPronto` | Como saber que a página terminou de carregar |
 | `seletorAba` | Como clicar na aba. Deixe nulo se for uma página única |
 | `seletorPainel` | Como saber que a aba já está aberta (evita clicar sem necessidade) |
+| `requerFormularioAberto` | Seletor de um bloco que o **operador** precisa abrir antes (ex.: cadastro da vítima). Se não estiver visível, a aba é pulada com aviso, sem erro |
 | `seletor` | O campo em si. Aceita CSS ou XPath com prefixo `xpath=` |
 | `tipo` | `texto`, `areaTexto`, `selectNativo`, `caixaPesquisavel` |
 | `seletorLista` / `seletorOpcoes` | **Obrigatórios** em `caixaPesquisavel`: o container da lista e os itens clicáveis |
 | `modoCorrespondencia` | `exata` (recomendado) ou `contem` |
 | `valorVerificacao` | Como reler o campo depois de preenchido (`textoOpcao` = usar o texto da opção escolhida) |
+
+### Regra do NIC (`regraNic`)
+
+No exame de **NECROPSIA**, o sistema oficial mantém o cadastro da vítima
+bloqueado até o operador digitar o **NIC**. A ferramenta não tenta contornar o
+bloqueio:
+
+| Chave | Para que serve |
+|---|---|
+| `seletorExame` | Campo que diz qual exame está selecionado (fica em outra aba) |
+| `valorExame` | Valor que dispara a regra (`NECROPSIA`) |
+| `seletorNic` | Campo do NIC, no cadastro da vítima |
+
+Com isso, a ferramenta:
+
+1. só habilita o botão **Preencher** depois que o NIC aparece na tela;
+2. se o operador apagar o NIC, volta a bloquear;
+3. se for preencher com o NIC vazio, espera até 60 s e para com orientação — em
+   vez de tentar escrever em campo bloqueado.
+
+Em qualquer outro exame, o comportamento é o normal: o operador abre o cadastro
+da vítima e os campos já estão livres.
 
 ### Os quatro tipos de campo
 

@@ -177,6 +177,23 @@ app.whenReady().then(async () => {
   registrar('[5] etapa final: ' + desfecho.etapa + ' / rodape: ' + desfecho.rodape);
   registrar('[5] mensagem: ' + desfecho.texto.split('\n')[0]);
 
+  // Sem o formulario da vitima aberto, a aba e pulada e a tela final avisa.
+  if (/A aba da vítima não estava aberta/i.test(desfecho.texto)) {
+    registrar('[5] aviso de aba da vítima pulada exibido');
+  } else {
+    reprovar('a tela final deveria avisar que a aba da vítima não estava aberta');
+  }
+
+  // O operador precisa de um caminho de volta para preencher a vitima depois.
+  const botaoContinuar = await wc.executeJavaScript(
+    '(() => { const b = document.getElementById("btn-continuar"); return Boolean(b && !b.hidden && !b.getAttribute("hidden")); })()',
+  );
+  if (botaoContinuar) {
+    registrar('[5] botão "Continuar o preenchimento" disponível');
+  } else {
+    reprovar('a tela final deveria oferecer "Continuar o preenchimento"');
+  }
+
   // A tela final precisa dizer que o envio e responsabilidade do operador.
   if (!/não envia nada sozinha/i.test(desfecho.texto)) {
     reprovar('a tela final nao avisa que a ferramenta nao envia sozinha');

@@ -29,10 +29,12 @@ const elementos = {
   andamentoDetalhe: document.getElementById('andamento-detalhe'),
   corpoDados: document.getElementById('corpo-dados'),
   avisosExtracao: document.getElementById('avisos-extracao'),
+  avisoNic: document.getElementById('aviso-nic-preencher'),
   origemLeitura: document.getElementById('origem-leitura'),
   btnPreencher: document.getElementById('btn-preencher'),
   btnDescartar: document.getElementById('btn-descartar'),
   btnNova: document.getElementById('btn-nova'),
+  btnContinuar: document.getElementById('btn-continuar'),
   resultadoTitulo: document.getElementById('resultado-titulo'),
   resultadoTexto: document.getElementById('resultado-texto'),
   erroTitulo: document.getElementById('erro-titulo'),
@@ -52,6 +54,9 @@ const estado = {
   meta: null,           // metadados da extracao
   ocupado: false,
   modoTeste: false,
+  // Estado da aba da vitima na pagina aberta (null = ainda nao consultado).
+  vitima: null,
+  monitoramentoVitima: null,
 };
 
 /* ----------------------------------------------------------- utilidades */
@@ -150,13 +155,72 @@ function renderizarDados() {
   }
 }
 
+/** Compara o exame sem acento e sem caixa (mesma regra do preenchimento). */
+function exameEhNecropsia(exame) {
+  return String(exame ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toLowerCase() === 'necropsia';
+}
+
+/**
+ * No exame de NECROPSIA o sistema so libera a vitima depois do NIC.
+ * Enquanto o operador nao digitar o NIC, o botao de preencher fica bloqueado.
+ */
+function aguardandoNic() {
+  const vitima = estado.vitima;
+  return Boolean(
+    vitima
+    && vitima.paginaAberta
+    && vitima.formularioAberto
+    && exameEhNecropsia(vitima.exame)
+    && !vitima.nicPreenchido
+  );
+}
+
 /** Habilita o preenchimento somente quando ha algo para preencher. */
 function atualizarBotaoPreencher() {
   const total = Object.values(estado.dados).filter((v) => String(v ?? '').trim() !== '').length;
-  elementos.btnPreencher.disabled = estado.ocupado || total === 0;
-  elementos.btnPreencher.textContent = total === 1
-    ? 'Preencher o sistema (1 campo)'
-    : `Preencher o sistema (${total} campos)`;
+  const esperando = aguardandoNic();
+
+  elementos.btnPreencher.disabled = estado.ocupado || total === 0 || esperando;
+  elementos.btnPreencher.textContent = esperando
+    ? 'Aguardando o NIC...'
+    : total === 1
+      ? 'Preencher o sistema (1 campo)'
+      : `Preencher o sistema (${total} campos)`;
+
+  elementos.avisoNic.hidden = !esperando;
+}
+
+/** Pergunta ao processo principal o estado da aba da vitima. */
+async function consultarEstadoVitima() {
+  if (estado.ocupado) return;
+  try {
+    const resposta = await window.api.estadoVitima();
+    estado.vitima = resposta && resposta.paginaAberta ? resposta : null;
+    atualizarBotaoPreencher();
+  } catch {
+    // Consulta opcional: sem ela o botao segue o comportamento normal.
+    estado.vitima = null;
+    atualizarBotaoPreencher();
+  }
+}
+
+/** Passa a observar a aba da vitima enquanto a conferencia esta na tela. */
+function iniciarMonitoramentoVitima() {
+  if (estado.monitoramentoVitima || !estado.modoTeste) return;
+  consultarEstadoVitima();
+  estado.monitoramentoVitima = window.setInterval(consultarEstadoVitima, 1500);
+}
+
+/** Para de observar (ao preencher ou ao sair da conferencia). */
+function pararMonitoramentoVitima() {
+  if (estado.monitoramentoVitima) {
+    window.clearInterval(estado.monitoramentoVitima);
+    estado.monitoramentoVitima = null;
+  }
 }
 
 /** Mostra os avisos da extracao (campos opcionais nao encontrados). */
@@ -186,6 +250,7 @@ function exibirExtracao(resultado) {
   renderizarAvisos(resultado.meta.avisos);
   renderizarDados();
   atualizarBotaoPreencher();
+  iniciarMonitoramentoVitima();
   mostrarEtapa('dados');
   definirRodape('Dados extraídos — aguardando conferência');
 }
@@ -210,11 +275,15 @@ function exibirErro(titulo, mensagem, detalhe) {
 
 /** Volta para a tela inicial, limpando os dados em memoria. */
 function reiniciar() {
+  pararMonitoramentoVitima();
+  estado.vitima = null;
   estado.dados = {};
   estado.original = {};
   estado.meta = null;
   elementos.corpoDados.textContent = '';
   elementos.avisosExtracao.hidden = true;
+  elementos.avisoNic.hidden = true;
+  elementos.btnContinuar.hidden = true;
   elementos.origemLeitura.textContent = '';
   elementos.trilhaBarra.style.width = '0%';
   mostrarEtapa('entrada');
@@ -340,6 +409,7 @@ elementos.btnEscanear.addEventListener('click', async () => {
 elementos.btnPreencher.addEventListener('click', async () => {
   if (estado.ocupado) return;
 
+  pararMonitoramentoVitima();
   definirOcupado(true);
   iniciarAndamento('Preenchendo o sistema…');
   elementos.andamentoDetalhe.textContent = 'O navegador vai abrir. Não clique em nada até terminar.';
@@ -358,11 +428,18 @@ elementos.btnPreencher.addEventListener('click', async () => {
     }
 
     const total = resposta.resumo.totalPreenchidos;
+    const puladas = Array.isArray(resposta.abasPuladas) ? resposta.abasPuladas : [];
+    const avisoVitima = puladas.includes('daVitima')
+      ? '\n\nA aba da vítima não estava aberta. Abra o cadastro da vítima e clique em Preencher de novo.'
+      : '';
+
+    elementos.btnContinuar.hidden = !puladas.includes('daVitima');
+
     elementos.resultadoTitulo.textContent = 'Pronto para revisão';
     elementos.resultadoTexto.textContent =
       `${total} ${total === 1 ? 'campo preenchido e conferido' : 'campos preenchidos e conferidos'} no sistema.\n\n` +
       'O navegador está aberto com os dados já lançados. Revise cada campo e clique em ' +
-      '“Cadastrar” você mesmo. A ferramenta não envia nada sozinha.';
+      '“Cadastrar” você mesmo. A ferramenta não envia nada sozinha.' + avisoVitima;
 
     mostrarEtapa('resultado');
     definirRodape('Aguardando revisão do operador', 'ok');
@@ -379,6 +456,17 @@ elementos.btnDescartar.addEventListener('click', reiniciar);
 elementos.btnNova.addEventListener('click', reiniciar);
 elementos.btnErroVoltar.addEventListener('click', reiniciar);
 elementos.btnLogs.addEventListener('click', () => window.api.abrirLogs());
+
+/**
+ * Volta para a conferencia SEM descartar os dados. Serve para o operador abrir
+ * o cadastro da vitima, digitar o NIC e mandar preencher o restante.
+ */
+elementos.btnContinuar.addEventListener('click', () => {
+  mostrarEtapa('dados');
+  definirRodape('Dados extraídos — aguardando conferência');
+  iniciarMonitoramentoVitima();
+  consultarEstadoVitima();
+});
 
 // --- andamento vindo do processo principal ---
 

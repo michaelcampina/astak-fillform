@@ -11,8 +11,12 @@
     "teste:extracao": "node testes/executar-teste.js --extracao",
     "teste:preenchimento": "node testes/executar-teste.js --preenchimento",
     "teste:janela": "node testes/iniciar-teste-janela.js",
+    "requisicao-real": "node testes/executar-requisicao-real.js",
+    "teste:lote": "node testes/testar-lote-requisicoes.js",
+    "atualizar-listas": "node testes/atualizar-listas-simulacao.js",
     "exemplos": "node testes/gerar-exemplos.js",
-    "idioma-ocr": "node testes/baixar-idioma-ocr.js"
+    "idioma-ocr": "node testes/baixar-idioma-ocr.js",
+    "dados-ibge": "node testes/gerar-municipios-ibge.js"
   },
   "dependencies": {
     "@napi-rs/canvas": "^0.1.44",

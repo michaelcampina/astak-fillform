@@ -27,6 +27,12 @@ contextBridge.exposeInMainWorld('api', {
   /** Preenche o formulario. Nunca envia. */
   preencher: (dados) => ipcRenderer.invoke('preenchimento:executar', { dados }),
 
+  /**
+   * Estado da aba da vitima na pagina aberta (regra do NIC).
+   * Nunca abre navegador: informa apenas o que ja esta na tela.
+   */
+  estadoVitima: () => ipcRenderer.invoke('simulacao:estado-vitima'),
+
   /** Abre a pasta de logs. */
   abrirLogs: () => ipcRenderer.invoke('logs:abrir'),
 

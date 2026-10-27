@@ -15,6 +15,7 @@ const path = require('node:path');
 const { ErroDePreenchimento, ErroDeConfiguracao } = require('./erros');
 const { preencherCampo } = require('./campos');
 const { validarConfiguracao } = require('./protetor');
+const { exigeNic, nicPreenchido } = require('./nic');
 const { obterNavegador } = require('./sessao');
 const registro = require('../nucleo/registro');
 
@@ -152,6 +153,53 @@ async function abrirAba(pagina, aba, opcoes) {
 }
 
 /**
+ * Le o valor atual de um campo simples da tela, sem falhar se ele sumir.
+ *
+ * Nao exige visibilidade: o campo "Exame" fica em outra aba, que pode estar
+ * oculta no momento da leitura. O valor continua valendo.
+ */
+async function lerValorSimples(pagina, seletor) {
+  try {
+    return await pagina
+      .locator(seletor)
+      .first()
+      .evaluate((elemento) => String(elemento.value ?? elemento.textContent ?? '').trim());
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * Espera o operador informar o NIC na tela.
+ *
+ * So acontece na aba da vitima quando o exame e NECROPSIA. O sistema oficial
+ * mantem os campos bloqueados ate o NIC; a ferramenta aguarda em vez de
+ * desistir no primeiro instante.
+ */
+async function aguardarNic(pagina, regra, opcoes, aoProgredir) {
+  const limite = opcoes.esperaNicMs || 60000;
+  aoProgredir('Aguardando o NIC na aba da vitima...');
+
+  const fim = Date.now() + limite;
+  while (Date.now() < fim) {
+    await pagina.waitForTimeout(500);
+    const nic = await lerValorSimples(pagina, regra.seletorNic);
+    if (nicPreenchido(nic)) {
+      return;
+    }
+  }
+
+  throw new ErroDePreenchimento(
+    'O NIC nao foi informado na aba da vitima. No exame de NECROPSIA o sistema ' +
+    'so libera os campos depois do NIC. Informe o NIC e clique em Preencher novamente.',
+    {
+      etapa: 'preenchimento',
+      detalheTecnico: `Campo "${regra.seletorNic}" continuou vazio por ${limite} ms.`,
+    },
+  );
+}
+
+/**
  * Preenche uma aba e devolve os campos efetivamente preenchidos e verificados.
  */
 async function preencherAba(pagina, aba, dados, configuracao, aoProgredir) {
@@ -159,9 +207,40 @@ async function preencherAba(pagina, aba, dados, configuracao, aoProgredir) {
     timeoutMs: configuracao.geral.navegador.timeoutPadraoMs || 20000,
     atrasoDigitacaoMs: configuracao.geral.navegador.atrasoDigitacaoMs ?? 8,
     esperaEstabilizacaoMs: configuracao.geral.navegador.esperaEstabilizacaoMs ?? 300,
+    esperaNicMs: configuracao.geral.navegador.esperaNicMs ?? 60000,
   };
 
   await abrirAba(pagina, aba, opcoes);
+
+  // Aba cujo formulario precisa ter sido aberto pelo OPERADOR (ex.: cadastro da
+  // vitima). A ferramenta nunca clica em "Cadastrar uma nova vitima".
+  if (aba.requerFormularioAberto) {
+    const formularioAberto = await pagina
+      .locator(aba.requerFormularioAberto)
+      .first()
+      .isVisible()
+      .catch(() => false);
+
+    if (!formularioAberto) {
+      registro.info('Aba ignorada: o formulario nao foi aberto pelo operador', { aba: aba.id });
+      return {
+        preenchidos: [],
+        ignorados: (aba.campos || []).map((campo) => campo.campo),
+        pulada: aba.id,
+      };
+    }
+
+    // Regra do NIC: em NECROPSIA os campos ficam bloqueados ate o operador
+    // informar o NIC. A ferramenta espera em vez de preencher em campo travado.
+    const regraNic = configuracao.perfil.regraNic;
+    if (regraNic && regraNic.seletorExame && regraNic.seletorNic) {
+      const exame = await lerValorSimples(pagina, regraNic.seletorExame);
+      const nic = await lerValorSimples(pagina, regraNic.seletorNic);
+      if (exigeNic(exame, regraNic) && !nicPreenchido(nic)) {
+        await aguardarNic(pagina, regraNic, opcoes, aoProgredir);
+      }
+    }
+  }
 
   const preenchidos = [];
   const ignorados = [];
@@ -245,11 +324,15 @@ async function preencher(dados, configuracao, gatilhos = {}) {
 
   const preenchidos = [];
   const ignorados = [];
+  const abasPuladas = [];
 
   for (const aba of configuracao.perfil.abas || []) {
     const resultado = await preencherAba(pagina, aba, dados, configuracao, aoProgredir);
     preenchidos.push(...resultado.preenchidos);
     ignorados.push(...resultado.ignorados);
+    if (resultado.pulada) {
+      abasPuladas.push(resultado.pulada);
+    }
   }
 
   // 3. Deixa o operador na primeira aba, com o topo da pagina visivel.
@@ -262,16 +345,19 @@ async function preencher(dados, configuracao, gatilhos = {}) {
   registro.info('Preenchimento concluido e verificado', {
     totalCampos: preenchidos.length,
     ignorados: ignorados.length,
+    abasPuladas,
     modo: configuracao.modoTeste ? 'teste' : 'oficial',
   });
 
   return {
     preenchidos,
     ignorados,
+    abasPuladas,
     resumo: {
       totalPreenchidos: preenchidos.length,
       totalIgnorados: ignorados.length,
       abas: (configuracao.perfil.abas || []).map((aba) => aba.id),
+      abasPuladas,
       finalizadoEm: new Date().toISOString(),
     },
   };

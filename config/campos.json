@@ -96,7 +96,7 @@
       "rotulos": ["RG", "R.G.", "Documento de Identidade", "Identidade"],
       "formato": "rg",
       "regexCaptura": "([\\dXx.\\-\\s]{5,20})",
-      "obrigatorio": true
+      "obrigatorio": false
     },
     {
       "id": "cpf",

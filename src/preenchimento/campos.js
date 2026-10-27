@@ -99,6 +99,22 @@ async function limparCampo(pagina, localizador, timeoutMs) {
   await pagina.keyboard.press('Backspace');
 }
 
+/**
+ * Devolve ao campo o valor completo lido da requisicao.
+ *
+ * A caixa pesquisavel tenta varios filtros; o ultimo costuma ser so a primeira
+ * palavra. Se nenhuma opcao servir, o operador precisa ver o valor inteiro para
+ * corrigir, e nao um pedaco dele. Nunca seleciona nada: so digita.
+ */
+async function restaurarValorDigitado(pagina, localizador, valor, opcoes) {
+  try {
+    await limparCampo(pagina, localizador, opcoes.timeoutMs);
+    await localizador.pressSequentially(valor, { delay: opcoes.atrasoDigitacaoMs });
+  } catch {
+    // Se nao for possivel restaurar, o campo fica com o que ja estava.
+  }
+}
+
 /** Le o valor atual de um input/textarea/select. */
 async function lerValor(handle) {
   return handle.evaluate((elemento) => {
@@ -127,12 +143,40 @@ async function preencherTexto(pagina, definicao, valor, contexto, protetor, opco
   // pressSequentially digita como pessoa real, disparando os eventos que o
   // sistema oficial espera (keydown, input, change). Sem isso, algumas telas
   // com mascara ou validacao incremental nao registram o valor.
-  await localizador.pressSequentially(valor, { delay: opcoes.atrasoDigitacaoMs });
+  // Textos longos (historico) podem estourar o timeout padrao; nesse caso a
+  // gravacao exata com fill e a releitura abaixo continuam valendo.
+  let digitacaoFalhou = false;
+  try {
+    await localizador.pressSequentially(valor, {
+      delay: opcoes.atrasoDigitacaoMs,
+      timeout: Math.max(opcoes.timeoutMs || 20000, 60000),
+    });
+  } catch {
+    digitacaoFalhou = true;
+  }
 
   // Sai do campo para disparar a validacao do proprio sistema (blur).
   await pagina.keyboard.press('Tab');
 
-  const lido = await lerValor(handle);
+  let lido = await lerValor(handle);
+
+  if (!equivalentes(valor, lido)) {
+    // A digitacao tecla a tecla pode ser interrompida quando a janela perde o
+    // foco ou o texto e longo. O fill grava o valor exato e dispara
+    // input/change; a releitura abaixo continua sendo obrigatoria.
+    await localizador.fill(valor);
+    await pagina.keyboard.press('Tab');
+    const lidoComFill = await lerValor(handle);
+    if (equivalentes(valor, lidoComFill)) {
+      registro.aviso('Digitacao incompleta; valor regravado com fill e conferido', {
+        campo: contexto.campoId,
+        esperado: valor.length,
+        lidoNaPrimeira: String(lido).length,
+        estourouTimeout: digitacaoFalhou,
+      });
+    }
+    lido = lidoComFill;
+  }
 
   if (!equivalentes(valor, lido)) {
     throw new ErroDePreenchimento(
@@ -348,6 +392,7 @@ async function preencherCaixaPesquisavel(pagina, definicao, valor, contexto, pro
 
     if (candidatos.length > 1) {
       const listaAmbigua = candidatos.slice(0, 5).map((o) => o.texto).join(' | ');
+      await restaurarValorDigitado(pagina, localizador, valor, opcoes);
       throw new ErroDePreenchimento(
         `Mais de uma opcao corresponde a "${valor}" em "${contexto.descricao}". ` +
         `A ferramenta nao escolhe por conta propria. Opcoes: ${listaAmbigua}.`,
@@ -364,6 +409,7 @@ async function preencherCaixaPesquisavel(pagina, definicao, valor, contexto, pro
   }
 
   if (!escolhida) {
+    await restaurarValorDigitado(pagina, localizador, valor, opcoes);
     throw new ErroDePreenchimento(
       `Nenhuma opcao de "${contexto.descricao}" corresponde a "${valor}". ` +
       'Confira se o dado lido da requisicao esta correto ou ajuste o cadastro no sistema.',

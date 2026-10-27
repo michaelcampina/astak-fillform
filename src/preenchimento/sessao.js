@@ -224,4 +224,24 @@ function estaAberta() {
   return sessaoViva();
 }
 
-module.exports = { obterNavegador, encerrar, estaAberta, caminhoDoPerfil };
+/**
+ * Devolve a pagina utilizavel da sessao SEM abrir navegador.
+ *
+ * A interface usa isto para ler o estado da tela (exame e NIC) antes de
+ * habilitar o botao de preencher. Se nao houver sessao, devolve null: consultar
+ * o estado nunca deve abrir uma janela por conta propria.
+ *
+ * @returns {object|null}
+ */
+function paginaAtual() {
+  if (!sessaoViva()) {
+    return null;
+  }
+  try {
+    return sessao.contexto.pages().find((p) => !p.isClosed()) || null;
+  } catch {
+    return null;
+  }
+}
+
+module.exports = { obterNavegador, encerrar, estaAberta, caminhoDoPerfil, paginaAtual };

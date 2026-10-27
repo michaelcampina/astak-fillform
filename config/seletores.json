@@ -11,75 +11,96 @@
   ],
 
   "simulacao": {
+    "_comentario": [
+      "Pagina de simulacao com 6 abas visiveis, mas a ferramenta preenche apenas as abas 1, 3 e 4.",
+      "A aba 2 (exame) e o cadastro da vitima em NECROPSIA sao do operador: a ferramenta apenas",
+      "monitora o exame para aplicar a regra do NIC (ver 'regraNic').",
+      "Nunca inclua aqui um seletor de botao de envio. A ferramenta recusa a configuracao se detectar."
+    ],
     "url": "file:///__DIRETORIO_SIMULACAO__/sistema-simulado.html",
-    "seletorPronto": "#form-requisicao",
+    "seletorPronto": "#form-laudo",
+    "regraNic": {
+      "seletorExame": "#exame",
+      "valorExame": "NECROPSIA",
+      "seletorNic": "#nic"
+    },
     "abas": [
       {
-        "id": "requisicao",
-        "descricao": "Requisicao",
-        "seletorAba": "button[data-aba='requisicao']",
-        "seletorPainel": "#painel-requisicao",
+        "id": "dadosEntrada",
+        "descricao": "1-Dados da Entrada",
+        "seletorAba": "#aba-1",
+        "seletorPainel": "#painel-1",
         "campos": [
+          { "campo": "numeroRegistro", "tipo": "texto", "seletor": "#npp" },
+          { "campo": "numeroRequisicao", "tipo": "texto", "seletor": "#nOficio" },
+          { "campo": "dataRequisicao", "tipo": "texto", "seletor": "#dataOficio" },
           {
             "campo": "orgao",
             "tipo": "caixaPesquisavel",
-            "seletor": "#orgao",
-            "seletorLista": "#orgao-opcoes",
-            "seletorOpcoes": "#orgao-opcoes li[role='option']",
+            "seletor": "#orgaoSolicitante",
+            "seletorLista": "#orgaoSolicitante-opcoes",
+            "seletorOpcoes": "#orgaoSolicitante-opcoes li[role='option']",
             "modoCorrespondencia": "exata",
             "valorVerificacao": "textoOpcao"
           },
-          { "campo": "numeroRequisicao", "tipo": "texto", "seletor": "#numeroRequisicao" },
-          { "campo": "numeroRegistro", "tipo": "texto", "seletor": "#numeroRegistro" },
-          { "campo": "dataRequisicao", "tipo": "texto", "seletor": "#dataRequisicao" },
+          {
+            "campo": "destinoExame",
+            "tipo": "caixaPesquisavel",
+            "seletor": "#orgaoDestino",
+            "seletorLista": "#orgaoDestino-opcoes",
+            "seletorOpcoes": "#orgaoDestino-opcoes li[role='option']",
+            "modoCorrespondencia": "exata",
+            "valorVerificacao": "textoOpcao"
+          },
           {
             "campo": "autoridade",
             "tipo": "caixaPesquisavel",
-            "seletor": "#autoridade",
-            "seletorLista": "#autoridade-opcoes",
-            "seletorOpcoes": "#autoridade-opcoes li[role='option']",
+            "seletor": "#autoridadeSolicitante",
+            "seletorLista": "#autoridadeSolicitante-opcoes",
+            "seletorOpcoes": "#autoridadeSolicitante-opcoes li[role='option']",
             "modoCorrespondencia": "exata",
             "valorVerificacao": "textoOpcao"
           },
-          { "campo": "tipoExame", "tipo": "texto", "seletor": "#tipoExame" },
-          { "campo": "destinoExame", "tipo": "selectNativo", "seletor": "#destinoExame" }
+          { "campo": "fatos", "tipo": "areaTexto", "seletor": "#dadosFato" }
         ]
       },
       {
-        "id": "examinado",
-        "descricao": "Examinado",
-        "seletorAba": "button[data-aba='examinado']",
-        "seletorPainel": "#painel-examinado",
+        "id": "doFato",
+        "descricao": "3-Do Fato",
+        "seletorAba": "#aba-3",
+        "seletorPainel": "#painel-3",
         "campos": [
-          { "campo": "nomeExaminado", "tipo": "texto", "seletor": "#nomeExaminado" },
-          { "campo": "dataNascimento", "tipo": "texto", "seletor": "#dataNascimento" },
-          { "campo": "rg", "tipo": "texto", "seletor": "#rg" },
-          { "campo": "cpf", "tipo": "texto", "seletor": "#cpf" },
+          { "campo": "dataFato", "tipo": "texto", "seletor": "#dataHoraFato" },
+          { "campo": "localFato", "tipo": "areaTexto", "seletor": "#enderecoFato" }
+        ]
+      },
+      {
+        "id": "daVitima",
+        "descricao": "4-Da Vitima/Periciando",
+        "seletorAba": "#aba-4",
+        "seletorPainel": "#painel-4",
+        "requerFormularioAberto": "#form-vitima",
+        "campos": [
+          { "campo": "nomeExaminado", "tipo": "texto", "seletor": "#nomeVitima" },
+          { "campo": "dataNascimento", "tipo": "texto", "seletor": "#dataNascimentoVitima" },
+          { "campo": "rg", "tipo": "texto", "seletor": "#rgVitima" },
+          { "campo": "cpf", "tipo": "texto", "seletor": "#cpfVitima" },
           { "campo": "nomeMae", "tipo": "texto", "seletor": "#nomeMae" },
           { "campo": "nomePai", "tipo": "texto", "seletor": "#nomePai" },
-          { "campo": "endereco", "tipo": "areaTexto", "seletor": "#endereco" }
-        ]
-      },
-      {
-        "id": "fatos",
-        "descricao": "Fatos",
-        "seletorAba": "button[data-aba='fatos']",
-        "seletorPainel": "#painel-fatos",
-        "campos": [
-          { "campo": "localFato", "tipo": "texto", "seletor": "#localFato" },
-          { "campo": "dataFato", "tipo": "texto", "seletor": "#dataFato" },
-          { "campo": "fatos", "tipo": "areaTexto", "seletor": "#fatos" },
-          { "campo": "observacoes", "tipo": "areaTexto", "seletor": "#observacoes" }
+          { "campo": "endereco", "tipo": "texto", "seletor": "#enderecoVitima" }
         ]
       }
     ],
     "_protetor": {
       "_comentario": "Nunca clicar, digitar ou pressionar Enter nestes elementos. Verificacao feita antes de cada clique.",
       "seletoresProibidos": [
-        "#btn-cadastrar",
-        "#btn-finalizar",
-        "#btn-enviar",
-        "#btn-salvar",
+        "#btn-finalizar-lancamento",
+        "#btn-voltar",
+        "#btn-cadastrar-vitima",
+        "#btn-cancelar-cadastro",
+        "#btn-pesquisar-cep",
+        "#btn-novo-bairro",
+        "#btn-validar-coordenadas",
         "button[type='submit']",
         "input[type='submit']"
       ],

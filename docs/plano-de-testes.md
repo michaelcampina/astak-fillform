@@ -274,6 +274,141 @@ como bloqueio de execução do Chrome e mandava o operador cobrar o TI pelo moti
 errado. Corrigido em duas frentes: fallback de pasta e detecção específica do
 erro.
 
+### 2.11 Exame NECROPSIA sem NIC
+
+**Como reproduzir:** abra a aba 2, selecione `NECROPSIA`, vá à aba 4 e clique em
+**Cadastrar uma nova vítima**. Deixe o NIC vazio e clique em **Preencher**.
+
+**Esperado:** os campos da vítima ficam bloqueados, aparece o aviso *"Informe o
+NIC para liberar o preenchimento"* e o botão de preencher fica desabilitado. Se o
+preenchimento for acionado por outro caminho, a ferramenta espera até 60 s e
+para com *"O NIC não foi informado na aba da vítima…"*. Nenhum campo bloqueado é
+tocado.
+
+Ao digitar qualquer NIC, os campos são liberados; ao apagar o NIC, voltam a
+bloquear. Em qualquer outro exame, o cadastro abre liberado.
+
+**Por que isso importa:** é a regra do fluxo oficial de necropsia. Preencher em
+campo bloqueado falharia sem aviso ou gravaria dado incompleto.
+
+### 2.12 Aba da vítima fechada
+
+**Como reproduzir:** rode o preenchimento sem abrir o cadastro da vítima.
+
+**Esperado:** as abas 1 e 3 são preenchidas, a aba 4 é **pulada** e a tela final
+avisa que a aba da vítima não estava aberta, pedindo para abrir o cadastro e
+clicar em Preencher de novo. A ferramenta **não** clica em "Cadastrar uma nova
+vítima": esse clique é do operador.
+
+**Por que isso importa:** a regra do produto é que a ferramenta só preenche
+campos; nunca aciona botão do sistema oficial.
+
+### 2.13 Formatação automática e listas dinâmicas
+
+**Como reproduzir:** digite apenas números em **Data Ofício** (`12032024`),
+**Suposta data/hora** (`100320241430`), **Data de nascimento** (`05071980`) e
+**CPF** (`12345678900`).
+
+**Esperado:** a tela completa a pontuação sozinha: `12/03/2024`,
+`10/03/2024 14:30`, `05/07/1980`, `123.456.789-00`.
+
+**Cidade e Bairro (aba 3):** a Cidade traz as **223 cidades da Paraíba** (base
+do IBGE). Ao escolher Campina Grande, o Bairro lista só bairros de Campina
+Grande; ao trocar para João Pessoa, a lista muda. "Pesquisar CEP" seleciona a
+cidade e os bairros dela.
+
+**Cidade Nascimento e Cidade (endereço):** ao escolher a UF, a lista traz os
+municípios daquela UF (IBGE). O Bairro do endereço é populado pela cidade.
+
+**Combos de órgão/autoridade:** um valor fora da lista fictícia **não é
+apagado** — permanece no campo para o operador corrigir — e é registrado em
+`window.__simulacao.valoresExtraidos` com `naLista: false`. Valores que existem
+na lista entram com `naLista: true`.
+
+**Pesquisar vítima:** abre uma tela própria, diferente do cadastro, com o
+seletor **Pesquisar por:** (opções `NIC`, `NOME` e `CPF`) e o botão
+**Pesquisar**. O cadastro só aparece pelo outro botão.
+
+**Continuar o preenchimento:** quando a aba da vítima é pulada, a tela final
+oferece o botão "Continuar o preenchimento". O operador abre o cadastro da
+vítima no Chrome, digita o NIC e volta; o botão "Preencher" é liberado.
+
+### 2.14 Requisição real (layout da Polícia Civil PB)
+
+**Como rodar:**
+
+```bat
+npm run requisicao-real -- "C:\caminho\requisicao.pdf"
+```
+
+O runner usa o motor de extração do projeto, monta o JSON dos campos mapeados e
+preenche a simulação campo a campo (para não parar no primeiro erro). Ele lê o
+layout real da Central de Flagrantes/NUMOL (rótulos `Exame Requisitado`,
+`Delegado(a) de Polícia Civil`, `Ref.: APF`, `Periciando(a)`, `Histórico`,
+`Local da ocorrência`). O PDF real é um scan com camada de texto; o motor usa
+essa camada quando ela está legível e o OCR do projeto quando não está.
+
+**Esperado:** relatório em `testes/saida/requisicao-real-<data>.md` com:
+
+- JSON extraído e tempo de extração;
+- campos preenchidos e conferidos;
+- valores digitados que não existem nas listas fictícias (permanecem no campo
+  para o operador corrigir);
+- falhas (se houver);
+- `cliquesDeEnvio = 0` e nada cadastrado.
+
+**Por que isso importa:** é o teste com documento real, não com o fixture
+sintético. Ele valida o layout, as formatações e a regra de não clicar em botão.
+
+### 2.15 Lote de requisições reais
+
+**Como rodar:**
+
+```bat
+npm run teste:lote -- "a.pdf" "b.pdf" "c.pdf"
+```
+
+Processa cada PDF com o motor de extração e gera um relatório consolidado com:
+layout reconhecido, via (texto digital ou OCR), campos extraídos, obrigatórios
+ausentes, avisos, tempo e erro. O JSON ao lado traz os dados completos de cada
+arquivo.
+
+O layout real usa o OCR do projeto mesmo quando o PDF tem camada digital, porque
+a camada do Adobe Scan confunde `1`/`I`/`l` e mistura colunas. A camada digital
+fica como fonte alternativa para números truncados pelo OCR.
+
+**Esperado:** cada requisição do modelo da Polícia Civil deve cair em
+`requisicao-pb`. Requisições de outros órgãos (ex.: Polícia Federal) podem ter
+layout diferente e são reportadas como falha.
+
+### 2.16 Tolerâncias de extração
+
+- **RG ausente:** o RG é difícil de ler e nem toda requisição o exige. A ausência
+  **não bloqueia**: vira aviso no log e em `meta.avisos`; o campo fica em branco
+  para o operador. No lote, 15 arquivos seguem normalmente com esse aviso.
+- **Arquivo ilegível:** se nenhum campo-núcleo (**número, nome ou data**) for
+  lido, a ferramenta para com
+  *"A requisição não pôde ser lida. Verifique a legibilidade do arquivo ou
+  preencha manualmente."* e **não** segue com JSON vazio. Um único endereço
+  solto no cabeçalho não conta como leitura válida.
+- **Vários arquivos:** `npm run requisicao-real` aceita um ou mais PDFs e gera
+  um relatório consolidado, além dos relatórios individuais.
+
+### 2.17 Listas reais da simulação
+
+**Como rodar:**
+
+```bat
+npm run atualizar-listas -- "testes\saida\lote-requisicoes-....json"
+```
+
+Lê o JSON do lote, pega os valores únicos de `orgao`, `destinoExame` e
+`autoridade`, limpa as variantes de OCR e mescla com as listas fictícias de
+`sistema-simulado.html`. As listas fictícias são preservadas para os testes.
+
+**Esperado:** os três campos passam de "fora-da-lista" para "ok" no teste real.
+No último lote, as listas ficaram com 34 órgãos/destinos e 22 autoridades.
+
 ---
 
 ## 3. Checklist de aceitação
@@ -282,6 +417,19 @@ Para considerar a entrega aprovada:
 
 - [x] `npm test` termina com **TODOS OS TESTES PASSARAM**
 - [x] Os três fixtures extraem 18/18 campos
+- [x] A página de simulação tem as 6 abas com os nomes do sistema
+- [x] Os catálogos (15 exames, 42 fatos, CVLI, cor/raça, estado civil, gênero, UFs) conferem item a item
+- [x] As abas 5 e 6 mostram "Conteúdo a detalhar"
+- [x] `NECROPSIA` bloqueia a vítima até o NIC; apagar o NIC re-bloqueia
+- [x] Outro exame libera os campos da vítima na abertura
+- [x] Datas, data/hora e CPF são formatados automaticamente
+- [x] Cidade (PB) e Bairro são dinâmicos; CEP seleciona cidade e bairros
+- [x] Cidades de nascimento/residência vêm da UF (base IBGE)
+- [x] Combo preserva valor fora da lista e registra em `valoresExtraidos`
+- [x] "Pesquisar vítima" abre tela diferente do cadastro
+- [x] A tela final oferece "Continuar o preenchimento" quando a vítima é pulada
+- [x] O botão "Preencher" é liberado depois que o NIC aparece na tela
+- [x] O preenchimento pula a aba da vítima quando o formulário não foi aberto pelo operador
 - [x] O preenchimento confirma `cliquesDeEnvio === 0` e `cadastrada === false`
 - [x] `npm run teste:janela` termina com **FLUXO COMPLETO APROVADO**
 - [x] A janela abre em modo de teste, com o selo visível
@@ -307,10 +455,16 @@ Execução registrada em `testes/saida/resultado-janela.json`:
 [3] tabela editavel: 18 campo(s), botao "Preencher o sistema (18 campos)"
 [4] clicando em "Preencher o sistema"...
 [5] etapa final: etapa-resultado / rodape: Aguardando revisão do operador
-[5] mensagem: 18 campos preenchidos e conferidos no sistema.
+[5] mensagem: 8 campos preenchidos e conferidos no sistema.
+[5] aviso de aba da vítima pulada exibido
+[5] botão "Continuar o preenchimento" disponível
 
 JANELA: FLUXO COMPLETO APROVADO
 ```
+
+> Nesta execução a aba da vítima foi pulada, como esperado: o formulário do
+> cadastro é aberto pelo operador, e o teste de janela não o abre. A ferramenta
+> preencheu as abas 1 e 3, avisou na tela final e não tocou em botão de envio.
 
 ---
 

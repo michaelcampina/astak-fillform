@@ -80,9 +80,13 @@ npm test                    :: extração + preenchimento
 npm run teste:extracao      :: só a leitura dos documentos
 npm run teste:preenchimento :: só o preenchimento na simulação
 npm run teste:janela        :: fluxo completo dentro da janela real
+npm run requisicao-real -- "a.pdf" "b.pdf"              :: uma ou mais requisições reais
+npm run teste:lote -- "a.pdf" "b.pdf"                    :: lote de PDFs, so extracao
+npm run atualizar-listas -- "testes\saida\lote-requisicoes-....json"  :: listas da simulacao
 ```
 
-O relatório sai em `testes/saida/relatorio-<data>.md`.
+O relatório sai em `testes/saida/relatorio-<data>.md`. Para a requisição real, sai
+`requisicao-real-<data>.md` (com JSON, tempos e o que passou/falhou).
 
 Resultado atual:
 
@@ -138,7 +142,7 @@ src/
   extracao/                pdf.js, Tesseract.js, rótulos, formatação
   preenchimento/           Playwright, campos, sessão, protetor anti-envio
   nucleo/                  configuração e registro de log
-simulacao/               página que imita o sistema, para teste
+simulacao/               página que imita o sistema (6 abas) + bases do IBGE
 testes/                  fixtures, gabarito e executor
 docs/                    manual, configuração e plano de testes
 ```

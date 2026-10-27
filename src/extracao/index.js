@@ -10,6 +10,7 @@
 const { detectarTipo, lerTextoDoPdf, renderizarPdfComoImagens } = require('./pdf');
 const { extrairTextoDeImagens, extrairTextoDeImagem } = require('./ocr');
 const { extrairBrutos } = require('./rotulos');
+const layoutRequisicaoPb = require('./layout-requisicao-pb');
 const formatacao = require('./formatacao');
 const registro = require('../nucleo/registro');
 
@@ -80,6 +81,21 @@ function montarDados(linhas, configuracao, origem) {
   }
 
   if (ausentes.length > 0) {
+    // Um unico campo solto (ex.: o endereco da unidade no cabecalho) nao torna
+    // o arquivo legivel. Sem numero, nome ou data, a requisicao nao foi lida.
+    const nucleo = ['numeroRequisicao', 'nomeExaminado', 'dataRequisicao'];
+    if (!nucleo.some((id) => dados[id] !== undefined)) {
+      throw new ErroDeExtracao(
+        'A requisição não pôde ser lida. Verifique a legibilidade do arquivo ou preencha manualmente.',
+        { ausentes, origem, avisos: avisosFinais },
+      );
+    }
+    if (ausentes.length === obrigatorios.size) {
+      throw new ErroDeExtracao(
+        'A requisição não pôde ser lida. Verifique a legibilidade do arquivo ou preencha manualmente.',
+        { ausentes, origem, avisos: avisosFinais },
+      );
+    }
     const descricoes = ausentes
       .map((id) => definicaoDe(id)?.descricao || id)
       .join(', ');
@@ -127,8 +143,10 @@ async function processar(entrada, configuracao, aoProgredir = () => {}) {
   }
 
   let linhas = [];
+  let linhasDigitais = null;
   let viaDeLeitura = '';
   let confianca = null;
+  let layout = null;
 
   if (tipo === 'pdf') {
     aoProgredir('Lendo o PDF...');
@@ -145,6 +163,35 @@ async function processar(entrada, configuracao, aoProgredir = () => {}) {
     if (!leitura.precisaOcr) {
       linhas = leitura.linhas;
       viaDeLeitura = 'texto-de-pdf-digital';
+      const textoDigital = linhas.join('\n');
+
+      // O texto digital de scanners costuma confundir 1/I/l e misturar colunas.
+      // Quando o documento parece uma requisicao, o OCR do projeto le melhor.
+      // A camada digital fica como fonte alternativa para numeros truncados.
+      const pareceRequisicao = layoutRequisicaoPb.detectar(linhas)
+        || /Ref\.?:\s*(?:BO|APF|80)/i.test(textoDigital)
+        || /Delegado\(a\) de Pol[íi]cia Civil/i.test(textoDigital)
+        || /Hist[óo]rico:/i.test(textoDigital);
+
+      if (pareceRequisicao) {
+        linhasDigitais = linhas;
+        try {
+          aoProgredir('Reconhecendo o texto das paginas...');
+          const imagens = await renderizarPdfComoImagens(buffer, configuracao.geral.extracao);
+          const ocr = await extrairTextoDeImagens(imagens, configuracao);
+          if (ocr.linhas.length > 0) {
+            linhas = ocr.linhas;
+            confianca = ocr.confianca;
+            viaDeLeitura = 'ocr-de-pdf-escaneado';
+          }
+        } catch {
+          // Sem OCR, segue com o texto digital.
+        }
+      }
+
+      if (layoutRequisicaoPb.detectar(linhas)) {
+        layout = 'requisicao-pb';
+      }
     } else {
       aoProgredir('PDF escaneado detectado. Preparando as paginas...');
       let imagens;
@@ -162,6 +209,9 @@ async function processar(entrada, configuracao, aoProgredir = () => {}) {
       linhas = ocr.linhas;
       confianca = ocr.confianca;
       viaDeLeitura = 'ocr-de-pdf-escaneado';
+      if (layoutRequisicaoPb.detectar(linhas)) {
+        layout = 'requisicao-pb';
+      }
     }
   } else {
     aoProgredir('Reconhecendo o texto da imagem...');
@@ -169,6 +219,9 @@ async function processar(entrada, configuracao, aoProgredir = () => {}) {
     linhas = ocr.linhas;
     confianca = ocr.confianca;
     viaDeLeitura = 'ocr-de-imagem';
+    if (layoutRequisicaoPb.detectar(linhas)) {
+      layout = 'requisicao-pb';
+    }
   }
 
   if (linhas.length === 0) {
@@ -188,11 +241,48 @@ async function processar(entrada, configuracao, aoProgredir = () => {}) {
   }
 
   aoProgredir('Identificando os campos da requisicao...');
-  const { dados, avisos } = montarDados(linhas, configuracao, nomeArquivo);
+  let dados;
+  let avisos;
+  if (layout === 'requisicao-pb') {
+    const extraido = layoutRequisicaoPb.extrair(linhas, configuracao, linhasDigitais);
+    dados = extraido.dados;
+    avisos = extraido.avisos;
+  } else {
+    ({ dados, avisos } = montarDados(linhas, configuracao, nomeArquivo));
+  }
+
+  // RG e um dado dificil de ler e nem toda requisicao o traz. A ausencia NAO
+  // bloqueia o preenchimento: vira aviso no log e na tela.
+  if (!dados.rg) {
+    registro.aviso('RG nao encontrado; seguindo sem o campo (aviso)', { origem: nomeArquivo });
+    if (!avisos.some((aviso) => /RG/i.test(aviso))) {
+      avisos.push('RG nao encontrado; o campo ficara em branco.');
+    }
+  }
+
+  // Se nada obrigatorio foi lido, o arquivo e ilegivel: para com mensagem clara
+  // em vez de seguir com um JSON vazio. O campo-nucleo evita que um unico
+  // endereco solto (falso positivo) seja tratado como requisicao valida.
+  const obrigatorios = configuracao.campos.filter((campo) => campo.obrigatorio);
+  const encontrados = obrigatorios.filter((campo) => dados[campo.id] !== undefined);
+  const nucleo = ['numeroRequisicao', 'nomeExaminado', 'dataRequisicao'];
+  const temNucleo = nucleo.some((id) => dados[id] !== undefined);
+  if (encontrados.length === 0 || !temNucleo) {
+    throw new ErroDeExtracao(
+      'A requisição não pôde ser lida. Verifique a legibilidade do arquivo ou preencha manualmente.',
+      {
+        origem: nomeArquivo,
+        layout: layout || 'padrao',
+        ausentes: obrigatorios.map((campo) => campo.id),
+        encontrados: encontrados.map((campo) => campo.id),
+      },
+    );
+  }
 
   registro.info('Extracao concluida', {
     origem: nomeArquivo,
     viaDeLeitura,
+    layout: layout || 'padrao',
     confianca,
     camposPreenchidos: Object.keys(dados).length,
     avisos: avisos.length,
@@ -203,6 +293,7 @@ async function processar(entrada, configuracao, aoProgredir = () => {}) {
     meta: {
       origem: nomeArquivo,
       viaDeLeitura,
+      layout: layout || 'padrao',
       confianca,
       linhasLidas: linhas.length,
       avisos,

@@ -30,6 +30,114 @@ const config = require('../src/nucleo/config');
 const registro = require('../src/nucleo/registro');
 const extracao = require('../src/extracao');
 
+/* ================================================= catalogo do sistema oficial
+   Estes arrays sao a transcricao das opcoes reais do sistema. O teste compara
+   a pagina de simulacao item a item; qualquer divergencia aparece no relatorio.
+   Listas de orgaos/autoridades/CEP nao entram aqui: sao dados de exemplo. */
+
+const ABAS_ESPERADAS = [
+  '1-Dados da Entrada',
+  '2-Do Exame',
+  '3-Do Fato',
+  '4-Da Vitima/Periciando',
+  '5-Do Vestigio',
+  '6-Anexo',
+];
+
+const EXAMES_ESPERADOS = [
+  'DANO PSIQUICO EM VÍTIMAS DE VIOLÊNCIA',
+  'EXAME ANTROPOLÓGICO',
+  'EXAME CORPORAL COM LESÃO',
+  'EXAME CORPORAL SEM LESÃO',
+  'EXAME DE DANO EMOCIONAL',
+  'EXAME DE LESÃO CORPORAL COMPLEMENTAR (SANIDADE)',
+  'EXAME CORPORAL COMPLEMENTAR (SANIDADE)',
+  'EXAME DE SANIDADE MENTAL',
+  'EXAME PARA CONSTATAÇÃO DE EMBRIAGUEZ',
+  'EXAME PARA ESTIMATIVA DE IDADE',
+  'EXAME SEXOLÓGICO',
+  'EXUMAÇÃO CADAVÉRICA',
+  'LESÃO CORPORAL-DPVAT',
+  'NECROPSIA',
+  'PERICIA PSICOLOGICA EM CRIANÇAS E ADOLESCENTES VITIMAS DE ABUSO SEXUAL',
+];
+
+const FATOS_ESPERADOS = [
+  'acidente',
+  'acidente de trabalho',
+  'acidente de trânsito',
+  'Adulteração de quilometragem de veículo',
+  'afogamento',
+  'antropologia',
+  'arrombamento',
+  'crime contra a fauna',
+  'crime contra a fauna/flora',
+  'crime contra a fauna/flora/poluição',
+  'crime contra a poluição/fauna',
+  'crime contra a poluição/flora',
+  'crime contra flora',
+  'crime de poluição',
+  'crime sexual',
+  'danos em propriedade privada',
+  'danos em propriedade pública',
+  'desabamento',
+  'doença',
+  'eletroplessão',
+  'envenenamento',
+  'explosão',
+  'explosão agência bancária',
+  'exumações',
+  'feto',
+  'fraude em/através de dispositivos eletrônicos',
+  'furto de água',
+  'furto de energia elétrica',
+  'homicídio',
+  'indeterminado',
+  'inumações',
+  'local de fabricação/plantio/armazenamento drogas',
+  'local envolvido em infração penal',
+  'morte a esclarecer',
+  'ofensa física',
+  'queda da própria altura',
+  'queda de nível',
+  'queimadura',
+  'raio',
+  'sufocação',
+  'suicídio',
+  'tentativa de homicídio',
+];
+
+const CVLI_ESPERADO = ['SIM', 'NÃO', 'A ESCLARECER'];
+const TIPOS_LOCAL_ESPERADOS = [
+  'unidade hospitalar', 'via publica', 'residencia', 'estabelecimento privado',
+  'estabelecimento publico', 'meio liquido', 'meio de vegetação',
+];
+const CORES_ESPERADAS = ['branca', 'Preta', 'Amarela', 'Parda', 'indigena', 'Não declarada'];
+const ESTADOS_CIVIS_ESPERADOS = ['Solteiro(a)', 'Casado(a)', 'Divorciado(a)', 'Viúvo(a)'];
+const GENEROS_ESPERADOS = [
+  'Mulher Transgenero', 'Homem transexual', 'Mulher transexual', 'Cisgenero',
+  'não sei responder', 'prefiro não responder', 'outros',
+];
+const SEXOS_ESPERADOS = ['Masculino', 'feminino', 'Não identificado'];
+const NACIONALIDADES_ESPERADAS = [
+  'Brasileira', 'Brasileira: nascido no exterior ou naturalizado', 'estrangeira',
+];
+const UFS_ESPERADAS = [
+  'Acre', 'Alagoas', 'Amapá', 'Amazonas', 'Bahia', 'Ceará', 'Distrito Federal',
+  'Espírito Santo', 'Goiás', 'Maranhão', 'Mato Grosso', 'Mato Grosso do Sul',
+  'Minas Gerais', 'Pará', 'Paraíba', 'Paraná', 'Pernambuco', 'Piauí',
+  'Rio de Janeiro', 'Rio Grande do Norte', 'Rio Grande do Sul', 'Rondônia',
+  'Roraima', 'Santa Catarina', 'São Paulo', 'Sergipe', 'Tocantins',
+];
+const REGISTROS_ESPERADOS = ['Com Ofício', 'Sem Ofício'];
+const TIPOS_AUTORIDADE_ESPERADOS = ['DELEGADO(A)', 'JUIZ(A)', 'OUTRO', 'PERITO(A)', 'PROMOTOR(A)'];
+const POLICIAL_ESPERADO = [
+  'NÃO', 'SIM COMO VÍTIMA', 'SIM COMO AUTOR', 'SIM VÍTIMA E AUTOR',
+  'SIM — CLASSIFICAÇÃO NÃO INFORMADA',
+];
+const IGNORADO_ESPERADO = ['Não', 'Sim'];
+
+
 /** Cores para o terminal. Desligadas quando a saida vai para arquivo. */
 const cores = process.stdout.isTTY
   ? { ok: '\x1b[32m', erro: '\x1b[31m', aviso: '\x1b[33m', fraco: '\x1b[90m', fim: '\x1b[0m' }
@@ -290,6 +398,380 @@ async function testarExtracao(cfg, relatorio) {
   }
 }
 
+/* ======================================== bloco 1.5: pagina de simulacao */
+
+/** Confere uma lista inteira, sem poluir o relatorio quando esta tudo certo. */
+function conferirLista(relatorio, nome, esperado, obtido) {
+  const mesmo = JSON.stringify(esperado) === JSON.stringify(obtido);
+  if (mesmo) {
+    relatorio.nota(`${nome}: ${esperado.length} item(ns) exatos`);
+    return;
+  }
+  relatorio.campo(nome, esperado.join(' | '), obtido.join(' | '), {
+    igual: false,
+    motivo: `esperava ${esperado.length} item(ns), veio ${obtido.length}`,
+  });
+}
+
+/** Comparacao simples de um valor com outro. */
+function conferir(relatorio, nome, esperado, obtido) {
+  const a = String(esperado);
+  const b = String(obtido);
+  relatorio.campo(nome, a, b, { igual: a === b, motivo: '' });
+}
+
+/**
+ * Confere a pagina de simulacao: estrutura, catalogos, dependencia do objeto
+ * utilizado e a regra do NIC (NECROPSIA).
+ */
+async function testarSimulacao(cfg, relatorio) {
+  relatorio.iniciarBloco('Simulação — estrutura, catálogos e regra do NIC');
+
+  if (!cfg.modoTeste) {
+    relatorio.nota('MODO_TESTE está desligado; a página de simulação não foi testada.', 'falha');
+    return;
+  }
+
+  const sessao = require('../src/preenchimento/sessao');
+  const preenchimento = require('../src/preenchimento/index');
+  const nic = require('../src/preenchimento/nic');
+  const gabarito = JSON.parse(fs.readFileSync(path.join(DIR_FIXTURES, 'gabarito.json'), 'utf8'));
+
+  let pagina = null;
+  try {
+    // --- regra pura, sem navegador ---
+    conferir(relatorio, 'regra do NIC: NECROPSIA exige', true, nic.exigeNic('NECROPSIA', cfg.perfil.regraNic));
+    conferir(relatorio, 'regra do NIC: caixa e espaço não importam', true, nic.exigeNic(' necropsia ', cfg.perfil.regraNic));
+    conferir(relatorio, 'regra do NIC: outro exame não exige', false, nic.exigeNic('EXAME CORPORAL SEM LESÃO', cfg.perfil.regraNic));
+    conferir(relatorio, 'regra do NIC: NIC com conteúdo', true, nic.nicPreenchido('2026/123456'));
+    conferir(relatorio, 'regra do NIC: NIC em branco', false, nic.nicPreenchido('   '));
+
+    pagina = (await sessao.obterNavegador(cfg)).pagina;
+    await preenchimento.abrirFormulario(pagina, cfg);
+
+    const estrutura = await pagina.evaluate(() => {
+      const textoOpcoes = (id) => Array.from(document.querySelectorAll('#' + id + ' option'))
+        .filter((opcao) => opcao.value !== '')
+        .map((opcao) => opcao.textContent.trim());
+      return {
+        abas: Array.from(document.querySelectorAll('.aba')).map((botao) => botao.textContent.trim()),
+        painel5: (document.querySelector('#painel-5 .aviso-detalhar') || {}).textContent || '',
+        painel6: (document.querySelector('#painel-6 .aviso-detalhar') || {}).textContent || '',
+        exames: textoOpcoes('exame'),
+        realizadoEm: textoOpcoes('realizadoEm'),
+        fatos: textoOpcoes('fatoSuposto'),
+        cvli: textoOpcoes('cvli'),
+        tiposLocal: textoOpcoes('tipoLocal'),
+        corRaca: textoOpcoes('corRaca'),
+        estadoCivil: textoOpcoes('estadoCivil'),
+        genero: textoOpcoes('genero'),
+        sexo: textoOpcoes('sexo'),
+        nacionalidade: textoOpcoes('nacionalidade'),
+        ufs: textoOpcoes('ufNascimento'),
+        registros: textoOpcoes('registro'),
+        tiposAutoridade: textoOpcoes('tipoAutoridade'),
+        policial: textoOpcoes('policialEnvolvido'),
+        ignorado: textoOpcoes('vitima-ignorado'),
+      };
+    });
+
+    conferirLista(relatorio, 'abas', ABAS_ESPERADAS, estrutura.abas);
+    conferir(relatorio, 'aba 5 aviso', 'Conteúdo a detalhar', String(estrutura.painel5).trim());
+    conferir(relatorio, 'aba 6 aviso', 'Conteúdo a detalhar', String(estrutura.painel6).trim());
+    conferirLista(relatorio, 'exames', EXAMES_ESPERADOS, estrutura.exames);
+    conferirLista(relatorio, 'realizado em', ['VÍTIMA', 'PRESO'], estrutura.realizadoEm);
+    conferirLista(relatorio, 'fatos', FATOS_ESPERADOS, estrutura.fatos);
+    conferirLista(relatorio, 'CVLI', CVLI_ESPERADO, estrutura.cvli);
+    conferirLista(relatorio, 'tipos de local', TIPOS_LOCAL_ESPERADOS, estrutura.tiposLocal);
+    conferirLista(relatorio, 'cor/raça', CORES_ESPERADAS, estrutura.corRaca);
+    conferirLista(relatorio, 'estado civil', ESTADOS_CIVIS_ESPERADOS, estrutura.estadoCivil);
+    conferirLista(relatorio, 'gênero', GENEROS_ESPERADOS, estrutura.genero);
+    conferirLista(relatorio, 'sexo', SEXOS_ESPERADOS, estrutura.sexo);
+    conferirLista(relatorio, 'nacionalidade', NACIONALIDADES_ESPERADAS, estrutura.nacionalidade);
+    conferirLista(relatorio, 'UFs', UFS_ESPERADAS, estrutura.ufs);
+    conferirLista(relatorio, 'registro', REGISTROS_ESPERADOS, estrutura.registros);
+    conferirLista(relatorio, 'tipo de autoridade', TIPOS_AUTORIDADE_ESPERADOS, estrutura.tiposAutoridade);
+    conferirLista(relatorio, 'policial envolvido', POLICIAL_ESPERADO, estrutura.policial);
+    conferirLista(relatorio, 'ignorado(a)', IGNORADO_ESPERADO, estrutura.ignorado);
+
+    // --- tela inicial da vitima ---
+    await pagina.locator('#aba-4').click();
+    const inicial = await pagina.evaluate(() => ({
+      telaInicial: !document.getElementById('tela-vitima-inicial').hidden,
+      formulario: !document.getElementById('form-vitima').hidden,
+      botaoPesquisar: document.getElementById('btn-pesquisar-vitima').textContent.trim(),
+      botaoNova: document.getElementById('btn-nova-vitima').textContent.trim(),
+    }));
+    conferir(relatorio, 'vítima: tela inicial visível', true, inicial.telaInicial);
+    conferir(relatorio, 'vítima: formulário oculto no início', false, inicial.formulario);
+    conferir(relatorio, 'vítima: botão pesquisar', 'PESQUISAR VÍTIMA JÁ CADASTRADA', inicial.botaoPesquisar);
+    conferir(relatorio, 'vítima: botão cadastrar nova', 'CADASTRAR UMA NOVA VÍTIMA', inicial.botaoNova);
+
+    // --- objeto utilizado depende do fato ---
+    await pagina.locator('#aba-3').click();
+    await pagina.locator('#fatoSuposto').selectOption({ label: 'acidente de trânsito' });
+    const transito = await pagina.evaluate(() => ({
+      desabilitado: document.getElementById('objetoUtilizado').disabled,
+      opcoes: Array.from(document.querySelectorAll('#objetoUtilizado option'))
+        .filter((opcao) => opcao.value !== '')
+        .map((opcao) => opcao.textContent.trim()),
+    }));
+    conferir(relatorio, 'objeto: acidente de trânsito habilita', false, transito.desabilitado);
+    conferirLista(
+      relatorio,
+      'objeto: opções de acidente de trânsito',
+      ['carro', 'moto', 'trator', 'atropelamento', 'trem', 'bicicleta', 'outros'],
+      transito.opcoes,
+    );
+
+    await pagina.locator('#fatoSuposto').selectOption({ label: 'tentativa de homicídio' });
+    const tentativa = await pagina.evaluate(() => document.getElementById('objetoUtilizado').disabled);
+    conferir(relatorio, 'objeto: "tentativa de homicídio" mantém bloqueado (lapso do sistema)', true, tentativa);
+
+    // --- cidades da Paraíba e bairros dinâmicos ---
+    const cidades = await pagina.evaluate(() => {
+      const opcoes = Array.from(document.querySelectorAll('#cidade option'))
+        .filter((opcao) => opcao.value !== '')
+        .map((opcao) => opcao.textContent.trim());
+      return { total: opcoes.length, campina: opcoes.indexOf('Campina Grande') !== -1 };
+    });
+    conferir(relatorio, 'cidades da Paraíba: 223', 223, cidades.total);
+    conferir(relatorio, 'cidades da Paraíba: Campina Grande', true, cidades.campina);
+
+    await pagina.locator('#cidade').selectOption({ label: 'Campina Grande' });
+    const bairrosCampina = await pagina.evaluate(() => ({
+      total: Array.from(document.querySelectorAll('#bairro option')).filter((o) => o.value !== '').length,
+      bodocongo: Array.from(document.querySelectorAll('#bairro option')).some((o) => o.value === 'Bodocongó'),
+    }));
+    conferir(relatorio, 'bairros de Campina Grande: quantidade', true, bairrosCampina.total > 10);
+    conferir(relatorio, 'bairros de Campina Grande: Bodocongó', true, bairrosCampina.bodocongo);
+
+    await pagina.locator('#cidade').selectOption({ label: 'João Pessoa' });
+    const bairrosJoaoPessoa = await pagina.evaluate(() => ({
+      total: Array.from(document.querySelectorAll('#bairro option')).filter((o) => o.value !== '').length,
+      tambia: Array.from(document.querySelectorAll('#bairro option')).some((o) => o.value === 'Tambiá'),
+    }));
+    conferir(relatorio, 'bairros de João Pessoa: quantidade', true, bairrosJoaoPessoa.total > 10);
+    conferir(relatorio, 'bairros de João Pessoa: Tambiá', true, bairrosJoaoPessoa.tambia);
+
+    // --- CEP de exemplo seleciona a cidade e os bairros dela ---
+    await pagina.locator('#cep').fill('58400000');
+    await pagina.locator('#btn-pesquisar-cep').click();
+    const cep = await pagina.evaluate(() => ({
+      cidade: document.getElementById('cidade').value,
+      bairros: Array.from(document.querySelectorAll('#bairro option'))
+        .filter((opcao) => opcao.value !== '')
+        .map((opcao) => opcao.textContent.trim()),
+    }));
+    conferir(relatorio, 'CEP de exemplo: cidade', 'Campina Grande', cep.cidade);
+    conferir(
+      relatorio,
+      'CEP de exemplo: bairros da cidade',
+      true,
+      cep.bairros.length > 10 && cep.bairros.indexOf('Centro') !== -1,
+    );
+
+    // --- formato de data/hora ---
+    await pagina.locator('#dataHoraFato').fill('100320241430');
+    conferir(relatorio, 'Suposta data/hora formatada', '10/03/2024 14:30',
+      await pagina.inputValue('#dataHoraFato'));
+
+    await pagina.locator('#dataEntradaIpc').fill('110320240830');
+    conferir(relatorio, 'Data/hora entrada IPC formatada', '11/03/2024 08:30',
+      await pagina.inputValue('#dataEntradaIpc'));
+
+    // --- formato da data do oficio (aba 1) ---
+    await pagina.locator('#aba-1').click();
+    await pagina.locator('#dataOficio').fill('12032024');
+    conferir(relatorio, 'Data Ofício formatada', '12/03/2024', await pagina.inputValue('#dataOficio'));
+
+    // --- combos: valor fora da lista permanece e vai para valoresExtraidos ---
+    await pagina.locator('#orgaoSolicitante').fill('Órgão Inexistente XYZ');
+    await pagina.locator('#orgaoSolicitante').press('Tab');
+    const resiliente = await pagina.evaluate(() => ({
+      valor: document.getElementById('orgaoSolicitante').value,
+      extraidos: window.__simulacao.valoresExtraidos,
+    }));
+    conferir(relatorio, 'combo: valor fora da lista não é apagado', 'Órgão Inexistente XYZ', resiliente.valor);
+    const registroFora = resiliente.extraidos.find(
+      (registro) => registro.campo === 'orgaoSolicitante' && registro.valor === 'Órgão Inexistente XYZ',
+    );
+    conferir(relatorio, 'combo: valor guardado em valoresExtraidos', true, Boolean(registroFora));
+    conferir(relatorio, 'combo: marcado como fora da lista', false, registroFora ? registroFora.naLista : null);
+
+    await pagina.locator('#orgaoSolicitante').fill('Ministério Público de São Paulo');
+    await pagina.locator('#orgaoSolicitante').press('Tab');
+    const registroLista = await pagina.evaluate(() => window.__simulacao.valoresExtraidos.find(
+      (registro) => registro.campo === 'orgaoSolicitante' && registro.valor === 'Ministério Público de São Paulo',
+    ));
+    conferir(relatorio, 'combo: valor da lista marcado', true, Boolean(registroLista && registroLista.naLista));
+
+    // --- regra do NIC: NECROPSIA ---
+    await pagina.locator('#aba-2').click();
+    await pagina.locator('#exame').selectOption({ label: 'NECROPSIA' });
+    await pagina.locator('#aba-4').click();
+    await pagina.locator('#btn-nova-vitima').click();
+
+    const bloqueado = await pagina.evaluate(() => ({
+      nomeBloqueado: document.getElementById('nomeVitima').disabled,
+      nicLiberado: !document.getElementById('nic').disabled,
+      avisoVisivel: !document.getElementById('aviso-nic').hidden,
+      botaoBloqueado: document.getElementById('btn-cadastrar-vitima').disabled,
+      estado: window.__simulacao.camposLiberados,
+      nicPreenchido: window.__simulacao.nicPreenchido,
+      dataPreenchido: document.getElementById('nic').dataset.preenchido,
+    }));
+    conferir(relatorio, 'NECROPSIA: nome bloqueado', true, bloqueado.nomeBloqueado);
+    conferir(relatorio, 'NECROPSIA: NIC liberado', true, bloqueado.nicLiberado);
+    conferir(relatorio, 'NECROPSIA: aviso visível', true, bloqueado.avisoVisivel);
+    conferir(relatorio, 'NECROPSIA: botão de cadastrar bloqueado', true, bloqueado.botaoBloqueado);
+    conferir(relatorio, 'NECROPSIA: estado não liberado', false, bloqueado.estado);
+    conferir(relatorio, 'NECROPSIA: estado do NIC exposto como vazio', false, bloqueado.nicPreenchido);
+    conferir(relatorio, 'NECROPSIA: data-preenchido falso', 'false', bloqueado.dataPreenchido);
+
+    await pagina.locator('#nic').fill('2026/123456');
+    const liberado = await pagina.evaluate(() => ({
+      nomeLiberado: !document.getElementById('nomeVitima').disabled,
+      avisoOculto: document.getElementById('aviso-nic').hidden,
+      estado: window.__simulacao.camposLiberados,
+      nicPreenchido: window.__simulacao.nicPreenchido,
+      dataPreenchido: document.getElementById('nic').dataset.preenchido,
+    }));
+    conferir(relatorio, 'NIC digitado: campos liberados', true, liberado.nomeLiberado);
+    conferir(relatorio, 'NIC digitado: aviso oculto', true, liberado.avisoOculto);
+    conferir(relatorio, 'NIC digitado: estado liberado', true, liberado.estado);
+    conferir(relatorio, 'NIC digitado: estado do NIC exposto', true, liberado.nicPreenchido);
+    conferir(relatorio, 'NIC digitado: data-preenchido verdadeiro', 'true', liberado.dataPreenchido);
+
+    await pagina.locator('#nic').fill('');
+    await pagina.locator('#nic').dispatchEvent('input');
+    const rebloqueado = await pagina.evaluate(() => document.getElementById('nomeVitima').disabled);
+    conferir(relatorio, 'NIC apagado: campos voltam a bloquear', true, rebloqueado);
+
+    // --- outro exame libera na hora ---
+    await pagina.locator('#aba-2').click();
+    await pagina.locator('#exame').selectOption({ label: 'EXAME CORPORAL SEM LESÃO' });
+    await pagina.locator('#aba-4').click();
+    const outroExame = await pagina.evaluate(() => ({
+      nomeLiberado: !document.getElementById('nomeVitima').disabled,
+      avisoOculto: document.getElementById('aviso-nic').hidden,
+    }));
+    conferir(relatorio, 'outro exame: campos liberados na abertura', true, outroExame.nomeLiberado);
+    conferir(relatorio, 'outro exame: sem aviso do NIC', true, outroExame.avisoOculto);
+
+    // --- máscaras da vítima ---
+    await pagina.locator('#dataNascimentoVitima').fill('05071980');
+    conferir(relatorio, 'Data de nascimento formatada', '05/07/1980',
+      await pagina.inputValue('#dataNascimentoVitima'));
+
+    await pagina.locator('#cpfVitima').fill('12345678900');
+    conferir(relatorio, 'CPF com máscara', '123.456.789-00',
+      await pagina.inputValue('#cpfVitima'));
+
+    // --- cidades por UF e bairros por cidade ---
+    await pagina.locator('#ufNascimento').selectOption({ label: 'Paraíba' });
+    const nascimentoPb = await pagina.evaluate(() => ({
+      total: Array.from(document.querySelectorAll('#cidadeNascimento option')).filter((o) => o.value !== '').length,
+    }));
+    conferir(relatorio, 'cidades de nascimento (PB): 223', 223, nascimentoPb.total);
+
+    await pagina.locator('#ufNascimento').selectOption({ label: 'São Paulo' });
+    const nascimentoSp = await pagina.evaluate(() => {
+      const opcoes = Array.from(document.querySelectorAll('#cidadeNascimento option')).map((o) => o.value);
+      return { campinas: opcoes.indexOf('Campinas') !== -1, saoPaulo: opcoes.indexOf('São Paulo') !== -1 };
+    });
+    conferir(relatorio, 'cidades de nascimento (SP): Campinas', true, nascimentoSp.campinas);
+    conferir(relatorio, 'cidades de nascimento (SP): São Paulo', true, nascimentoSp.saoPaulo);
+
+    await pagina.locator('#ufResidencia').selectOption({ label: 'Paraíba' });
+    const residenciaPb = await pagina.evaluate(() => ({
+      total: Array.from(document.querySelectorAll('#cidadeResidencia option')).filter((o) => o.value !== '').length,
+    }));
+    conferir(relatorio, 'cidades de residência (PB): 223', 223, residenciaPb.total);
+
+    await pagina.locator('#cidadeResidencia').selectOption({ label: 'Campina Grande' });
+    const bairrosResidencia = await pagina.evaluate(() => ({
+      total: Array.from(document.querySelectorAll('#bairroResidencia option')).filter((o) => o.value !== '').length,
+      bodocongo: Array.from(document.querySelectorAll('#bairroResidencia option')).some((o) => o.value === 'Bodocongó'),
+    }));
+    conferir(relatorio, 'bairros de residência: quantidade', true, bairrosResidencia.total > 10);
+    conferir(relatorio, 'bairros de residência: Bodocongó', true, bairrosResidencia.bodocongo);
+
+    // --- tela de pesquisa da vítima ---
+    await pagina.locator('#btn-pesquisar-vitima').click();
+    const pesquisa = await pagina.evaluate(() => {
+      const select = document.getElementById('pesquisa-por');
+      return {
+        tela: !document.getElementById('tela-vitima-pesquisa').hidden,
+        formOculto: document.getElementById('form-vitima').hidden,
+        inicialOculta: document.getElementById('tela-vitima-inicial').hidden,
+        opcoes: select ? Array.from(select.options).map((opcao) => opcao.textContent.trim()) : [],
+        temBotao: Boolean(document.getElementById('btn-executar-pesquisa')),
+        estado: window.__simulacao.telaVitima,
+      };
+    });
+    conferir(relatorio, 'pesquisar vítima: tela própria', true, pesquisa.tela);
+    conferir(relatorio, 'pesquisar vítima: cadastro oculto', true, pesquisa.formOculto);
+    conferir(relatorio, 'pesquisar vítima: tela inicial oculta', true, pesquisa.inicialOculta);
+    conferir(relatorio, 'pesquisar vítima: botão pesquisar', true, pesquisa.temBotao);
+    conferir(relatorio, 'pesquisar vítima: estado exposto', 'pesquisa', pesquisa.estado);
+    conferirLista(
+      relatorio,
+      'pesquisar vítima: opções',
+      ['Pesquisar por:', 'NIC', 'NOME', 'CPF'],
+      pesquisa.opcoes,
+    );
+
+    // O botão de cadastrar leva para o formulário.
+    await pagina.locator('#btn-nova-vitima').click();
+    conferir(relatorio, 'pesquisar vítima: cadastro reabre', 'cadastro',
+      await pagina.evaluate(() => window.__simulacao.telaVitima));
+
+    // --- formulário fechado: a aba da vitima e pulada, sem erro ---
+    await pagina.locator('#btn-cancelar-cadastro').click();
+    const pulado = await preenchimento.preencher(gabarito.dados, cfg, { aoProgredir: () => {} });
+    conferir(
+      relatorio,
+      'formulário fechado: aba da vítima pulada',
+      true,
+      (pulado.abasPuladas || []).includes('daVitima'),
+    );
+
+    // --- NECROPSIA sem NIC: o preenchimento espera e para com orientacao ---
+    await pagina.locator('#aba-2').click();
+    await pagina.locator('#exame').selectOption({ label: 'NECROPSIA' });
+    await pagina.locator('#aba-4').click();
+    await pagina.locator('#btn-nova-vitima').click();
+    await pagina.locator('#nic').fill('');
+
+    const esperaOriginal = cfg.geral.navegador.esperaNicMs;
+    cfg.geral.navegador.esperaNicMs = 1200;
+    let mensagemDeEspera = '';
+    try {
+      const resultadoEspera = await preenchimento.preencher(gabarito.dados, cfg, { aoProgredir: () => {} });
+      mensagemDeEspera = `(não parou; ${resultadoEspera.resumo.totalPreenchidos} campo(s) preenchido(s), abas puladas: ${(resultadoEspera.abasPuladas || []).join(', ') || 'nenhuma'})`;
+    } catch (erro) {
+      mensagemDeEspera = erro.message;
+    } finally {
+      cfg.geral.navegador.esperaNicMs = esperaOriginal;
+    }
+    relatorio.nota(`mensagem do cenário NECROPSIA sem NIC: ${mensagemDeEspera}`, 'info');
+    conferir(
+      relatorio,
+      'NECROPSIA sem NIC: para com orientação',
+      true,
+      /NIC nao foi informado/i.test(mensagemDeEspera),
+    );
+  } catch (erro) {
+    relatorio.nota(`a verificação da simulação falhou: ${erro.message}`, 'falha');
+    if (erro.detalheTecnico) {
+      relatorio.nota(`detalhe: ${JSON.stringify(erro.detalheTecnico).slice(0, 400)}`, 'info');
+    }
+  } finally {
+    await sessao.encerrar(true);
+  }
+}
+
 /* ================================================ bloco 2: preenchimento */
 
 /**
@@ -321,6 +803,12 @@ async function testarPreenchimento(cfg, relatorio) {
 
     await preenchimento.abrirFormulario(pagina, cfg);
 
+    // O operador abre o cadastro da vitima. A ferramenta nunca clica nesse
+    // botao: aqui quem clica e o teste, representando o operador.
+    await pagina.locator('#aba-4').click();
+    await pagina.locator('#btn-nova-vitima').click();
+    await pagina.waitForTimeout(150);
+
     // Zera os contadores da pagina antes de comecar.
     await pagina.evaluate(() => {
       window.__cliquesDeEnvio = 0;
@@ -330,6 +818,9 @@ async function testarPreenchimento(cfg, relatorio) {
     const resultado = await preenchimento.preencher(gabarito.dados, cfg, { aoProgredir: () => {} });
 
     relatorio.nota(`${resultado.resumo.totalPreenchidos} campo(s) preenchido(s) e verificado(s)`);
+    if ((resultado.abasPuladas || []).length > 0) {
+      relatorio.nota(`abas puladas: ${resultado.abasPuladas.join(', ')}`, 'falha');
+    }
 
     // Le o que realmente ficou na tela, campo por campo.
     for (const aba of cfg.perfil.abas) {
@@ -402,7 +893,7 @@ async function testarPreenchimento(cfg, relatorio) {
 
     // --- protetor recusa botoes de envio ---
     const protetor = require('../src/preenchimento/protetor');
-    for (const seletor of ['#btn-cadastrar', '#btn-finalizar', '#btn-enviar', '#btn-salvar']) {
+    for (const seletor of ['#btn-cadastrar-vitima', '#btn-finalizar-lancamento', '#btn-voltar', '#btn-cancelar-cadastro']) {
       const elemento = await pagina.$(seletor);
       if (!elemento) {
         relatorio.nota(`botão ${seletor} não existe na página de simulação`, 'aviso');
@@ -455,6 +946,7 @@ async function principal() {
     await testarExtracao(cfg, relatorio);
   }
   if (!apenasExtracao) {
+    await testarSimulacao(cfg, relatorio);
     await testarPreenchimento(cfg, relatorio);
   }
 

@@ -203,6 +203,80 @@ function registrarPontes() {
     return scanner.listarScanners(cfg);
   });
 
+  // --- Estado da aba da vitima (regra do NIC, so no modo simulacao) ---
+  //
+  // A interface consulta isto enquanto a tela de conferencia esta aberta para
+  // decidir se o botao "Preencher" pode ser liberado. Nunca abre navegador:
+  // se nao houver sessao viva, devolve paginaAberta=false.
+  ipcMain.handle('simulacao:estado-vitima', async () => {
+    try {
+      const cfg = obterConfiguracao();
+      if (!cfg.modoTeste) {
+        return { paginaAberta: false };
+      }
+
+      const sessao = require('./preenchimento/sessao');
+      const pagina = sessao.paginaAtual();
+      if (!pagina) {
+        return { paginaAberta: false };
+      }
+
+      const regra = cfg.perfil.regraNic;
+      if (!regra || !regra.seletorExame || !regra.seletorNic) {
+        return { paginaAberta: true, exame: '', nicPreenchido: true, formularioAberto: false };
+      }
+
+      const abaVitima = (cfg.perfil.abas || []).find((aba) => aba.requerFormularioAberto);
+      const seletorFormulario = abaVitima ? abaVitima.requerFormularioAberto : null;
+
+      const consulta = pagina.evaluate((dados) => {
+        const simulacao = window.__simulacao || {};
+        const ler = (seletor) => {
+          const elemento = document.querySelector(seletor);
+          return elemento ? String(elemento.value ?? '') : '';
+        };
+        const elementoNic = document.querySelector(dados.seletorNic);
+        const formulario = dados.seletorFormulario
+          ? document.querySelector(dados.seletorFormulario)
+          : null;
+        return {
+          exame: ler(dados.seletorExame),
+          nic: ler(dados.seletorNic),
+          nicMarcado: Boolean(elementoNic && elementoNic.dataset
+            && elementoNic.dataset.preenchido === 'true'),
+          estadoNic: Boolean(simulacao.nicPreenchido),
+          formularioAberto: Boolean(
+            (formulario && !formulario.hidden) || simulacao.formularioVitimaAberto
+          ),
+          estadoExame: String(simulacao.exame || ''),
+        };
+      }, {
+        seletorExame: regra.seletorExame,
+        seletorNic: regra.seletorNic,
+        seletorFormulario,
+      });
+
+      // A pagina pode estar navegando ou travada: a consulta nao pode segurar a interface.
+      const estadoPagina = await Promise.race([
+        consulta,
+        new Promise((_resolver, rejeitar) => setTimeout(() => rejeitar(new Error('tempo esgotado')), 2000)),
+      ]);
+
+      return {
+        paginaAberta: true,
+        exame: estadoPagina.exame || estadoPagina.estadoExame,
+        nicPreenchido: Boolean(
+          estadoPagina.nicMarcado
+          || estadoPagina.estadoNic
+          || String(estadoPagina.nic).trim() !== ''
+        ),
+        formularioAberto: estadoPagina.formularioAberto,
+      };
+    } catch {
+      return { paginaAberta: false };
+    }
+  });
+
   // --- Preencher o sistema ---
   ipcMain.handle('preenchimento:executar', async (_evento, { dados }) => {
     if (estado.preenchimentoEmAndamento) {
@@ -232,6 +306,7 @@ function registrarPontes() {
         ok: true,
         preenchidos: resultado.preenchidos,
         ignorados: resultado.ignorados,
+        abasPuladas: resultado.abasPuladas || [],
         resumo: resultado.resumo,
       };
     } catch (erro) {

@@ -3,346 +3,1399 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Sistema Simulado — Cadastro de Requisição de Exame</title>
+<title>Sistema Simulado — NUMOL-CG</title>
 <style>
   :root {
-    --azul: #1f4e79;
-    --azul-claro: #eaf1f8;
-    --cinza: #5b6770;
-    --borda: #cfd8e0;
-    --erro: #b3261e;
-    --ok: #1e6b3a;
-    --fundo: #f4f6f8;
+    --azul-topo: #1b74c7;
+    --azul-acao: #1a73c9;
+    --azul-titulo: #1f3b5c;
+    --azul-secao: #2b5f9e;
+    --verde: #1e7b3d;
+    --verde-escuro: #196b34;
+    --vermelho: #c0392b;
+    --vermelho-escuro: #a93226;
+    --borda: #cfd6de;
+    --borda-card: #e3e7ec;
+    --fundo: #eef1f4;
+    --texto: #25313d;
+    --texto-fraco: #8b98a5;
   }
   * { box-sizing: border-box; }
+  html, body { height: 100%; }
   body {
     margin: 0;
-    font-family: "Segoe UI", Roboto, Arial, sans-serif;
+    font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+    font-size: 13px;
+    color: var(--texto);
     background: var(--fundo);
-    color: #1b1f23;
-    font-size: 14px;
   }
-  header {
-    background: var(--azul);
+  [hidden] { display: none !important; }
+  button { font-family: inherit; }
+
+  /* ---------------- topo ---------------- */
+  .topo {
+    height: 46px;
+    background: var(--azul-topo);
     color: #fff;
-    padding: 14px 24px;
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    gap: 14px;
+    padding: 0 16px;
   }
-  header h1 { font-size: 16px; margin: 0; font-weight: 600; letter-spacing: .2px; }
-  header .modo {
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: .8px;
-    background: rgba(255,255,255,.16);
-    padding: 4px 10px;
-    border-radius: 999px;
-  }
-  main { max-width: 980px; margin: 24px auto 60px; padding: 0 20px; }
-  .abas { display: flex; gap: 4px; border-bottom: 2px solid var(--borda); margin-bottom: 20px; }
-  .abas button {
-    background: transparent;
+  .btn-menu {
+    background: none;
     border: 0;
-    border-bottom: 3px solid transparent;
-    padding: 10px 18px;
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--cinza);
+    color: #fff;
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 4px 6px;
+  }
+  .topo-usuario {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+  .topo-usuario .avatar {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, .28);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .topo-usuario .avatar svg { width: 11px; height: 11px; }
+  .topo-usuario .topo-min { opacity: .85; font-size: 15px; padding: 0 4px; }
+
+  /* ---------------- estrutura ---------------- */
+  .layout {
+    display: flex;
+    height: calc(100vh - 46px);
+    min-width: 1180px;
+  }
+  .menu-lateral {
+    width: 275px;
+    flex: 0 0 275px;
+    background: #fff;
+    border-right: 1px solid #e2e7ec;
+    padding: 14px 12px;
+    overflow-y: auto;
+  }
+  .brasao {
+    border: 1px solid #e2e7ec;
+    border-radius: 10px;
+    padding: 10px 8px;
+    display: flex;
+    justify-content: center;
+    margin-bottom: 18px;
+    box-shadow: 0 1px 2px rgba(15, 30, 50, .05);
+  }
+  .brasao svg { width: 118px; height: 140px; }
+  .menu-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    text-align: left;
+    padding: 11px 14px;
+    margin-bottom: 9px;
+    background: #fff;
+    border: 1px solid #e2e7ec;
+    border-radius: 6px;
+    box-shadow: 0 1px 2px rgba(15, 30, 50, .07);
+    color: #1f4e79;
+    font-weight: 700;
+    font-size: 12.5px;
+    letter-spacing: .2px;
     cursor: pointer;
   }
-  .abas button[aria-selected="true"] { color: var(--azul); border-bottom-color: var(--azul); }
-  .painel { display: none; }
-  .painel.ativo { display: block; }
-  fieldset {
-    border: 1px solid var(--borda);
-    border-radius: 6px;
-    background: #fff;
-    padding: 18px 20px 22px;
-    margin: 0 0 20px;
-  }
-  legend { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: var(--azul); padding: 0 6px; }
-  .linha { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 14px; }
-  .linha.unica { grid-template-columns: 1fr; }
-  label { display: block; font-size: 12px; font-weight: 600; color: var(--cinza); margin-bottom: 5px; }
-  input, textarea, select {
-    width: 100%;
-    padding: 8px 10px;
-    font-family: inherit;
-    font-size: 13px;
-    color: #1b1f23;
-    border: 1px solid var(--borda);
-    border-radius: 4px;
-    background: #fff;
-  }
-  input:focus, textarea:focus, select:focus { outline: 2px solid #9dc0e0; border-color: var(--azul); }
-  textarea { min-height: 86px; resize: vertical; }
+  .menu-item::before { content: "\25B8"; color: #7b8a99; font-size: 10px; }
+  .menu-item:hover { background: #f7fafc; }
 
-  /* Caixa seletora pesquisavel: input + lista flutuante */
+  .conteudo {
+    flex: 1;
+    overflow-y: auto;
+    padding: 14px 22px 36px;
+  }
+
+  /* ---------------- abas ---------------- */
+  .faixa-abas {
+    display: flex;
+    gap: 6px;
+    align-items: flex-end;
+    border-bottom: 1px solid #dbe1e7;
+    margin-bottom: 16px;
+  }
+  .aba {
+    padding: 9px 18px;
+    border: 1px solid #dbe1e7;
+    border-bottom: none;
+    border-radius: 5px 5px 0 0;
+    background: #fbfcfd;
+    color: #3a4b5c;
+    font-size: 12.5px;
+    cursor: pointer;
+    margin-bottom: -1px;
+  }
+  .aba[aria-selected="true"] {
+    background: #fff;
+    color: var(--azul-titulo);
+    font-weight: 600;
+    border-bottom: 2px solid var(--azul-acao);
+  }
+  .aba:focus-visible { outline: 2px solid #9dc0e0; }
+
+  /* ---------------- cards ---------------- */
+  .card {
+    background: #fff;
+    border: 1px solid var(--borda-card);
+    border-radius: 7px;
+    box-shadow: 0 1px 3px rgba(15, 30, 50, .07);
+    margin-bottom: 16px;
+  }
+  .card-titulo {
+    padding: 13px 22px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #33475b;
+    border-bottom: 1px solid #eef1f4;
+  }
+  .card-corpo { padding: 18px 22px 22px; }
+
+  /* ---------------- secoes ---------------- */
+  .secao { margin: 4px 0 28px; }
+  .secao-titulo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--azul-titulo);
+    margin: 0 0 16px;
+  }
+  .secao-titulo::before {
+    content: "";
+    width: 4px;
+    height: 15px;
+    background: var(--azul-secao);
+    border-radius: 1px;
+  }
+
+  /* ---------------- campos ---------------- */
+  .grade { display: grid; gap: 18px 20px; margin-bottom: 16px; }
+  .g1 { grid-template-columns: 1fr; }
+  .g2 { grid-template-columns: 1fr 1fr; }
+  .g3 { grid-template-columns: 1fr 1fr 1fr; }
+  .g4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+  .campo { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  label { font-size: 12px; font-weight: 600; color: #33414f; }
+  input, select, textarea {
+    width: 100%;
+    font-family: inherit;
+    font-size: 12.5px;
+    color: var(--texto);
+    background: #fff;
+    border: 1px solid var(--borda);
+    border-radius: 3px;
+    padding: 9px 10px;
+    min-height: 38px;
+  }
+  input::placeholder, textarea::placeholder { color: #9aa7b4; }
+  input:focus, select:focus, textarea:focus {
+    outline: 2px solid #b7d3ee;
+    border-color: var(--azul-acao);
+  }
+  input:disabled, select:disabled, textarea:disabled {
+    background-color: #f4f6f8;
+    color: var(--texto-fraco);
+    cursor: not-allowed;
+  }
+  textarea { min-height: 88px; resize: vertical; padding-top: 10px; }
+  select {
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='30' height='38'%3E%3Crect width='30' height='38' fill='%23f1f4f7'/%3E%3Crect width='1' height='38' fill='%23d5dbe2'/%3E%3Cpath d='M11 17l4 4 4-4' fill='none' stroke='%23566574' stroke-width='1.6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right center;
+    background-size: 30px 100%;
+    padding-right: 40px;
+  }
+  select:disabled {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='30' height='38'%3E%3Crect width='30' height='38' fill='%23f4f6f8'/%3E%3Crect width='1' height='38' fill='%23e2e7ec'/%3E%3Cpath d='M11 17l4 4 4-4' fill='none' stroke='%23b8c2cc' stroke-width='1.6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right center;
+    background-size: 30px 100%;
+  }
+
+  .linha-botoes { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 22px; }
+  .linha-botoes.um { grid-template-columns: 1fr; }
+
+  .botao {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border: 0;
+    border-radius: 5px;
+    padding: 11px 18px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #fff;
+    cursor: pointer;
+  }
+  .botao svg { width: 15px; height: 15px; flex: 0 0 auto; }
+  .botao-bloco { width: 100%; }
+  .botao-azul { background: var(--azul-acao); }
+  .botao-azul:hover { background: #1565b0; }
+  .botao-verde { background: var(--verde); }
+  .botao-verde:hover { background: var(--verde-escuro); }
+  .botao-vermelho { background: var(--vermelho); }
+  .botao-vermelho:hover { background: var(--vermelho-escuro); }
+  .botao:disabled { opacity: .55; cursor: not-allowed; }
+
+  .aviso {
+    padding: 9px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    margin: 0 0 16px;
+  }
+  .aviso-nic { background: #fff8e1; border: 1px solid #f0d585; color: #6b5400; }
+  .aviso-neutro { background: #f4f6f8; border: 1px solid #e2e7ec; color: #5b6770; }
+
+  /* ---------------- combo pesquisavel ---------------- */
   .combo { position: relative; }
-  .combo input { padding-right: 30px; }
+  .combo input { padding-right: 34px; }
   .combo .seta {
-    position: absolute; right: 10px; top: 30px; pointer-events: none;
-    color: var(--cinza); font-size: 10px;
+    position: absolute;
+    right: 1px;
+    top: 1px;
+    bottom: 1px;
+    width: 30px;
+    background: #f1f4f7;
+    border-left: 1px solid #d5dbe2;
+    border-radius: 0 3px 3px 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #566574;
+    font-size: 9px;
+    pointer-events: none;
   }
   .combo ul {
-    position: absolute; z-index: 20; left: 0; right: 0; top: calc(100% + 2px);
-    margin: 0; padding: 4px 0; list-style: none;
-    background: #fff; border: 1px solid var(--borda); border-radius: 4px;
-    box-shadow: 0 6px 18px rgba(16,32,48,.14);
-    max-height: 190px; overflow-y: auto;
+    position: absolute;
+    z-index: 30;
+    left: 0;
+    right: 0;
+    top: calc(100% + 2px);
+    margin: 0;
+    padding: 4px 0;
+    list-style: none;
+    background: #fff;
+    border: 1px solid var(--borda);
+    border-radius: 4px;
+    box-shadow: 0 6px 18px rgba(16, 32, 48, .16);
+    max-height: 200px;
+    overflow-y: auto;
     display: none;
   }
   .combo ul.aberta { display: block; }
-  .combo li { padding: 7px 12px; cursor: pointer; }
-  .combo li:hover, .combo li[aria-selected="true"] { background: var(--azul-claro); }
-  .combo li[aria-selected="true"] { font-weight: 600; color: var(--azul); }
-  .combo li.vazio { color: var(--cinza); cursor: default; font-style: italic; }
+  .combo li { padding: 8px 12px; cursor: pointer; }
+  .combo li:hover, .combo li[aria-selected="true"] { background: #eaf1f8; }
+  .combo li[aria-selected="true"] { font-weight: 600; color: #1f4e79; }
+  .combo li.vazio { color: var(--texto-fraco); cursor: default; font-style: italic; }
 
-  .rodape {
-    position: sticky; bottom: 0; background: #fff;
-    border-top: 1px solid var(--borda);
-    padding: 14px 24px; display: flex; gap: 10px; justify-content: flex-end;
-    max-width: 980px; margin: 0 auto; border-radius: 6px 6px 0 0;
+  /* ---------------- aba 1 ---------------- */
+  .linha-4 { grid-template-columns: 1.05fr 1.05fr 1.45fr .8fr; }
+  .dupla-cadastro { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: end; margin-bottom: 16px; }
+  .dupla-cadastro .rotulo-cadastro { font-size: 12px; font-weight: 600; color: #33414f; margin-bottom: 6px; display: block; }
+  .dupla-cadastro .campo { min-width: 0; }
+
+  /* ---------------- aba 2 ---------------- */
+  .equipe-adicional {
+    border: 1px solid var(--borda-card);
+    border-radius: 6px;
+    background: #fcfdfe;
+    margin-top: 6px;
   }
-  .btn { border: 0; border-radius: 4px; padding: 10px 20px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; }
-  .btn-secundario { background: #e8edf2; color: #33475b; }
-  .btn-primario { background: var(--azul); color: #fff; }
-  .aviso-teste {
-    background: #fff8e1; border: 1px solid #f0d585; color: #6b5400;
-    padding: 10px 14px; border-radius: 4px; font-size: 12px; margin-bottom: 18px;
+  .equipe-topo {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-bottom: 1px solid #eef1f4;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #33475b;
   }
-  #resultado { margin-top: 14px; font-size: 13px; }
-  #resultado.ok { color: var(--ok); }
+  .equipe-topo .recolher {
+    background: #f1f4f7;
+    border: 1px solid #d5dbe2;
+    border-radius: 3px;
+    width: 26px;
+    height: 22px;
+    color: #566574;
+    cursor: pointer;
+    line-height: 1;
+  }
+  .equipe-corpo { padding: 14px 16px 16px; }
+  .equipe-linha { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 14px; }
+  .equipe-linha p { margin: 0; color: #5b6770; font-size: 12px; }
+  .perito2 {
+    background: #f4f6f8;
+    border: 1px solid #e6eaee;
+    border-radius: 5px;
+    padding: 14px 16px;
+    color: #566574;
+    font-size: 12.5px;
+  }
+
+  /* ---------------- aba 3 ---------------- */
+  .cep-linha { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 20px; align-items: end; margin-bottom: 16px; }
+  .cep-linha .botao { min-height: 38px; }
+  .bairro-novo { max-width: 470px; }
+
+  /* ---------------- aba 4 ---------------- */
+  .acoes-vitima { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; margin-bottom: 18px; }
+  .acoes-vitima .botao { padding: 13px 18px; }
+
+  .linha-vitima { display: flex; align-items: center; gap: 26px; margin-bottom: 14px; }
+  .par { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .par > label { white-space: nowrap; margin: 0; }
+  .par > input, .par > select { width: 230px; }
+  .linha-vitima > .par:first-child > label { width: 232px; display: inline-block; }
+  .par .nome { width: 700px; }
+  .par .curto { width: 150px; }
+  .par .medio { width: 180px; }
+  .par .longo { width: 300px; }
+  .par .uf { width: 170px; }
+  .idade-valor { font-weight: 600; color: #33414f; }
+
+  .bloco-endereco { margin-top: 18px; }
+  .bloco-endereco .card-titulo { font-size: 12.5px; }
+
+  /* ---------------- tela de pesquisa da vitima ---------------- */
+  .caixa-pesquisa {
+    border: 1px solid var(--borda-card);
+    border-radius: 6px;
+    background: #fff;
+    padding: 20px 24px 24px;
+  }
+  .caixa-pesquisa select { width: 100%; }
+  .botao-pesquisar {
+    width: min(570px, 100%);
+    margin-top: 16px;
+    background: #4472c4;
+  }
+  .botao-pesquisar:hover { background: #3a63ad; }
+
+  .rodape-ccsi {
+    color: #7b8a99;
+    font-size: 11.5px;
+    padding: 10px 4px 0;
+  }
+
+  /* ---------------- abas 5 e 6 ---------------- */
+  .aviso-detalhar {
+    padding: 80px 20px;
+    text-align: center;
+    color: #7b8a99;
+    font-size: 13px;
+  }
+
+  @media (max-width: 1320px) {
+    .layout { min-width: 0; }
+    .menu-lateral { width: 230px; flex-basis: 230px; }
+  }
 </style>
 </head>
 <body>
 
-<header>
-  <h1>Sistema de Cadastro de Requisições de Exame</h1>
-  <span class="modo">Ambiente de simulação</span>
+<header class="topo">
+  <button class="btn-menu" type="button" aria-label="Menu">&#9776;</button>
+  <div class="topo-usuario">
+    <span class="avatar" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/>
+      </svg>
+    </span>
+    <span>Olá, JOSE Último login 28/07/2026 02:29:58 PROTOCOLADOR - NUMOL-CG</span>
+    <span class="topo-min" aria-hidden="true">&#8212;</span>
+  </div>
 </header>
 
-<main>
-  <p class="aviso-teste">
-    Esta é uma página de simulação. Ela reproduz os campos, abas e seletores do sistema oficial
-    apenas para testar a ferramenta. Nenhum dado é enviado para lugar algum.
-  </p>
+<div class="layout">
+  <aside class="menu-lateral">
+    <div class="brasao">
+      <svg viewBox="0 0 120 144" role="img" aria-label="Brasão da Polícia Científica da Paraíba">
+        <path d="M60 4 L112 24 V72 C112 106 88 128 60 140 C32 128 8 106 8 72 V24 Z"
+              fill="#f0cf55" stroke="#c9a227" stroke-width="3"/>
+        <path d="M60 16 L102 32 V72 C102 99 83 117 60 128 C37 117 18 99 18 72 V32 Z"
+              fill="#1f7a3f" stroke="#d9b43f" stroke-width="2"/>
+        <path d="M60 16 L102 32 V72 C102 99 83 117 60 128 Z" fill="#2a8f4b" opacity=".55"/>
+        <text x="60" y="48" text-anchor="middle" font-family="Arial, sans-serif" font-size="11"
+              font-weight="700" fill="#10421f">POLÍCIA</text>
+        <text x="60" y="64" text-anchor="middle" font-family="Arial, sans-serif" font-size="10"
+              font-weight="700" fill="#10421f">CIENTÍFICA</text>
+        <text x="60" y="86" text-anchor="middle" font-family="Arial, sans-serif" font-size="9"
+              fill="#f0cf55">PARAÍBA</text>
+        <circle cx="60" cy="101" r="10" fill="#d9b43f" opacity=".9"/>
+        <text x="60" y="105" text-anchor="middle" font-family="Arial, sans-serif" font-size="9"
+              font-weight="700" fill="#10421f">PB</text>
+      </svg>
+    </div>
+    <nav aria-label="Menu do sistema">
+      <button class="menu-item" type="button">GERAL</button>
+      <button class="menu-item" type="button">CADEIA DE CUSTÓDIA</button>
+      <button class="menu-item" type="button">CADASTRO</button>
+      <button class="menu-item" type="button">GED</button>
+      <button class="menu-item" type="button">LAUDOS</button>
+      <button class="menu-item" type="button">RELATÓRIOS</button>
+      <button class="menu-item" type="button">SISTEMA</button>
+    </nav>
+  </aside>
 
-  <form id="form-requisicao" novalidate>
-    <div class="abas" role="tablist">
-      <button type="button" role="tab" data-aba="requisicao" aria-selected="true">Requisição</button>
-      <button type="button" role="tab" data-aba="examinado" aria-selected="false">Examinado</button>
-      <button type="button" role="tab" data-aba="fatos" aria-selected="false">Fatos</button>
+  <main class="conteudo">
+    <div class="faixa-abas" role="tablist" aria-label="Etapas do lançamento">
+      <button class="aba" id="aba-1" type="button" role="tab" data-aba="1" aria-selected="true" aria-controls="painel-1">1-Dados da Entrada</button>
+      <button class="aba" id="aba-2" type="button" role="tab" data-aba="2" aria-selected="false" aria-controls="painel-2">2-Do Exame</button>
+      <button class="aba" id="aba-3" type="button" role="tab" data-aba="3" aria-selected="false" aria-controls="painel-3">3-Do Fato</button>
+      <button class="aba" id="aba-4" type="button" role="tab" data-aba="4" aria-selected="false" aria-controls="painel-4">4-Da Vitima/Periciando</button>
+      <button class="aba" id="aba-5" type="button" role="tab" data-aba="5" aria-selected="false" aria-controls="painel-5">5-Do Vestigio</button>
+      <button class="aba" id="aba-6" type="button" role="tab" data-aba="6" aria-selected="false" aria-controls="painel-6">6-Anexo</button>
     </div>
 
-    <!-- ===================== ABA 1: REQUISICAO ===================== -->
-    <section class="painel ativo" id="painel-requisicao" role="tabpanel">
-      <fieldset>
-        <legend>Dados da requisição</legend>
+    <form id="form-laudo" novalidate autocomplete="off">
 
-        <div class="linha">
-          <div class="combo" id="orgao-container">
-            <label for="orgao">Órgão requisitante</label>
-            <input id="orgao" name="orgao" type="text" autocomplete="off" role="combobox"
-                   aria-autocomplete="list" aria-expanded="false" aria-controls="orgao-opcoes">
-            <span class="seta" aria-hidden="true">▼</span>
-            <ul id="orgao-opcoes" role="listbox" aria-label="Órgãos disponíveis"></ul>
+      <!-- ================= ABA 1 ================= -->
+      <section class="painel" id="painel-1" role="tabpanel" aria-labelledby="aba-1">
+        <div class="card">
+          <div class="card-titulo">Lançamento de Registro Para Laudo -</div>
+          <div class="card-corpo">
+
+            <div class="grade g2">
+              <div class="campo">
+                <label for="npp">Nº Procedimento Policial:</label>
+                <input id="npp" name="npp" type="text" placeholder="NPP antigo ou novo, com ou sem pontos">
+              </div>
+              <div class="campo">
+                <label for="nJudicial">Nº Judicial:</label>
+                <input id="nJudicial" name="nJudicial" type="text" placeholder="Digite numero do Processo Judicial">
+              </div>
+            </div>
+
+            <div class="grade linha-4">
+              <div class="campo">
+                <label for="policialEnvolvido">Há Policial envolvido no fato?</label>
+                <select id="policialEnvolvido" name="policialEnvolvido"></select>
+              </div>
+              <div class="campo">
+                <label for="nOficio">Nº Ofício/Requisição:</label>
+                <input id="nOficio" name="nOficio" type="text" placeholder="Digite o Número do Ofício">
+              </div>
+              <div class="campo">
+                <label for="dataOficio">Data Ofício:</label>
+                <input id="dataOficio" name="dataOficio" type="text" placeholder="Digite a data do Ofício">
+              </div>
+              <div class="campo">
+                <label for="registro">Registro</label>
+                <select id="registro" name="registro"></select>
+              </div>
+            </div>
+
+            <div class="dupla-cadastro">
+              <div class="campo">
+                <label for="orgaoSolicitante">Órgão Solicitante:</label>
+                <div class="combo">
+                  <input id="orgaoSolicitante" name="orgaoSolicitante" type="text" autocomplete="off"
+                         role="combobox" aria-autocomplete="list" aria-expanded="false"
+                         aria-controls="orgaoSolicitante-opcoes">
+                  <span class="seta" aria-hidden="true">&#9660;</span>
+                  <ul id="orgaoSolicitante-opcoes" role="listbox" aria-label="Órgãos disponíveis"></ul>
+                </div>
+              </div>
+              <div>
+                <span class="rotulo-cadastro">Cadastrar novo Órgão Solicitante</span>
+                <button type="button" id="btn-novo-orgao" class="botao botao-verde botao-bloco">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+                    <path d="M12 5v14M5 12h14" stroke-linecap="round"/>
+                  </svg>
+                  Novo Cadastro
+                </button>
+              </div>
+            </div>
+
+            <div class="dupla-cadastro">
+              <div class="campo">
+                <label for="orgaoDestino">Órgão Destino do Laudo:</label>
+                <div class="combo">
+                  <input id="orgaoDestino" name="orgaoDestino" type="text" autocomplete="off"
+                         role="combobox" aria-autocomplete="list" aria-expanded="false"
+                         aria-controls="orgaoDestino-opcoes">
+                  <span class="seta" aria-hidden="true">&#9660;</span>
+                  <ul id="orgaoDestino-opcoes" role="listbox" aria-label="Órgãos de destino"></ul>
+                </div>
+              </div>
+              <div class="campo">
+                <label for="tipoAutoridade">Tipo da Autoridade Solicitante</label>
+                <select id="tipoAutoridade" name="tipoAutoridade"></select>
+              </div>
+            </div>
+
+            <div class="dupla-cadastro">
+              <div class="campo">
+                <label for="autoridadeSolicitante">Autoridade Solicitante:</label>
+                <div class="combo">
+                  <input id="autoridadeSolicitante" name="autoridadeSolicitante" type="text" autocomplete="off"
+                         role="combobox" aria-autocomplete="list" aria-expanded="false"
+                         aria-controls="autoridadeSolicitante-opcoes">
+                  <span class="seta" aria-hidden="true">&#9660;</span>
+                  <ul id="autoridadeSolicitante-opcoes" role="listbox" aria-label="Autoridades disponíveis"></ul>
+                </div>
+              </div>
+              <div>
+                <span class="rotulo-cadastro">Cadastrar nova Autoridade Solicitante</span>
+                <button type="button" id="btn-nova-autoridade" class="botao botao-verde botao-bloco">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+                    <path d="M12 5v14M5 12h14" stroke-linecap="round"/>
+                  </svg>
+                  Novo Cadastro
+                </button>
+              </div>
+            </div>
+
+            <div class="grade g1">
+              <div class="campo">
+                <label for="dadosFato">DADOS DO FATO:</label>
+                <textarea id="dadosFato" name="dadosFato" placeholder="Digite o Historico"></textarea>
+              </div>
+            </div>
+
+            <div class="linha-botoes">
+              <button type="button" id="btn-voltar" class="botao botao-vermelho">
+                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path d="M10 6 4 12l6 6v-4h10v-4H10z"/>
+                </svg>
+                VOLTAR
+              </button>
+              <button type="button" id="btn-finalizar-lancamento" class="botao botao-verde">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true">
+                  <path d="m4 12 6 6L20 6" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Finalizar Lançamento
+              </button>
+            </div>
+
           </div>
+        </div>
+      </section>
 
-          <div class="combo" id="autoridade-container">
-            <label for="autoridade">Autoridade requisitante</label>
-            <input id="autoridade" name="autoridade" type="text" autocomplete="off" role="combobox"
-                   aria-autocomplete="list" aria-expanded="false" aria-controls="autoridade-opcoes">
-            <span class="seta" aria-hidden="true">▼</span>
-            <ul id="autoridade-opcoes" role="listbox" aria-label="Autoridades disponíveis"></ul>
+      <!-- ================= ABA 2 ================= -->
+      <section class="painel" id="painel-2" role="tabpanel" aria-labelledby="aba-2" hidden>
+        <div class="card">
+          <div class="card-titulo">Exame a ser Realizado</div>
+          <div class="card-corpo">
+
+            <div class="grade" style="grid-template-columns: 340px 1fr 320px;">
+              <div class="campo">
+                <label for="nucleo">Núcleo</label>
+                <select id="nucleo" name="nucleo"></select>
+              </div>
+              <div class="campo">
+                <label for="exame">Exame</label>
+                <select id="exame" name="exame"></select>
+              </div>
+              <div class="campo">
+                <label for="realizadoEm">Realizado em</label>
+                <select id="realizadoEm" name="realizadoEm"></select>
+              </div>
+            </div>
+
+            <div class="grade g2">
+              <div class="campo">
+                <label for="peritoResponsavel">Perito(a) responsável</label>
+                <select id="peritoResponsavel" name="peritoResponsavel"></select>
+              </div>
+              <div class="campo">
+                <label for="necrotomista">Necrotomista</label>
+                <select id="necrotomista" name="necrotomista"></select>
+              </div>
+            </div>
+
+            <div class="equipe-adicional">
+              <div class="equipe-topo">
+                <span>Equipe adicional</span>
+                <button type="button" class="recolher" aria-label="Recolher equipe adicional">&#8722;</button>
+              </div>
+              <div class="equipe-corpo">
+                <div class="equipe-linha">
+                  <p>Use este bloco somente se precisar de um segundo perito.</p>
+                  <button type="button" id="btn-adicionar-perito2" class="botao botao-verde" style="min-width: 460px;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+                      <path d="M12 5v14M5 12h14" stroke-linecap="round"/>
+                    </svg>
+                    Adicionar Perito 2
+                  </button>
+                </div>
+                <div class="perito2" id="perito2">Perito 2: -</div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= ABA 3 ================= -->
+      <section class="painel" id="painel-3" role="tabpanel" aria-labelledby="aba-3" hidden>
+        <div class="card">
+          <div class="card-titulo">Dados do Fato</div>
+          <div class="card-corpo">
+
+            <div class="secao">
+              <h3 class="secao-titulo">Datas e Classificação</h3>
+              <div class="grade g3">
+                <div class="campo">
+                  <label for="dataHoraFato">Suposta data/hora do fato</label>
+                  <input id="dataHoraFato" name="dataHoraFato" type="text" placeholder="Digite a suposta data do Fato">
+                </div>
+                <div class="campo">
+                  <label for="dataEntradaIpc">Data/hora entrada IPC</label>
+                  <input id="dataEntradaIpc" name="dataEntradaIpc" type="text" placeholder="Digite a data da Entrada">
+                </div>
+                <div class="campo">
+                  <label for="cvli">CVLI</label>
+                  <select id="cvli" name="cvli"></select>
+                </div>
+              </div>
+            </div>
+
+            <div class="secao">
+              <h3 class="secao-titulo">Tipologia do Fato</h3>
+              <div class="grade g2">
+                <div class="campo">
+                  <label for="fatoSuposto">Fato suposto</label>
+                  <select id="fatoSuposto" name="fatoSuposto"></select>
+                </div>
+                <div class="campo">
+                  <label for="objetoUtilizado">Objeto utilizado</label>
+                  <select id="objetoUtilizado" name="objetoUtilizado" disabled></select>
+                </div>
+              </div>
+            </div>
+
+            <div class="secao">
+              <h3 class="secao-titulo">Local do Fato</h3>
+              <div class="cep-linha">
+                <div class="campo">
+                  <label for="cep">CEP</label>
+                  <input id="cep" name="cep" type="text" inputmode="numeric" placeholder="">
+                </div>
+                <button type="button" id="btn-pesquisar-cep" class="botao botao-azul">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <circle cx="11" cy="11" r="6"/><path d="m16 16 5 5" stroke-linecap="round"/>
+                  </svg>
+                  Pesquisar CEP
+                </button>
+                <div class="campo">
+                  <label for="cidade">Cidade</label>
+                  <select id="cidade" name="cidade"></select>
+                </div>
+                <div class="campo">
+                  <label for="bairro">Bairro</label>
+                  <select id="bairro" name="bairro"></select>
+                </div>
+              </div>
+              <button type="button" id="btn-novo-bairro" class="botao botao-verde botao-bloco bairro-novo">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+                  <path d="M12 5v14M5 12h14" stroke-linecap="round"/>
+                </svg>
+                Cadastrar Novo Bairro
+              </button>
+            </div>
+
+            <div class="secao">
+              <h3 class="secao-titulo">Condições do Local</h3>
+              <div class="grade g2">
+                <div class="campo">
+                  <label for="autoridadePresente">Autoridade Presente?</label>
+                  <select id="autoridadePresente" name="autoridadePresente" disabled></select>
+                </div>
+                <div class="campo">
+                  <label for="localPreservado">Local Preservado?</label>
+                  <select id="localPreservado" name="localPreservado" disabled></select>
+                </div>
+              </div>
+              <div class="grade g2">
+                <div class="campo">
+                  <label for="enderecoFato">Endereço do Fato</label>
+                  <textarea id="enderecoFato" name="enderecoFato" placeholder="Digite os dados do endereço do fato"></textarea>
+                </div>
+                <div class="campo">
+                  <label for="localObito">Local do óbito</label>
+                  <textarea id="localObito" name="localObito" placeholder="Digite os dados do local do óbito"></textarea>
+                </div>
+              </div>
+              <div class="grade g2">
+                <div class="campo">
+                  <label for="tipoLocal">Tipo do Local</label>
+                  <select id="tipoLocal" name="tipoLocal"></select>
+                </div>
+              </div>
+            </div>
+
+            <div class="secao">
+              <h3 class="secao-titulo">Geolocalização</h3>
+              <div class="grade g3">
+                <div class="campo">
+                  <label for="latitude">Latitude</label>
+                  <input id="latitude" name="latitude" type="text" placeholder="Digite a Coordenada (LAT)">
+                </div>
+                <div class="campo">
+                  <label for="longitude">Longitude</label>
+                  <input id="longitude" name="longitude" type="text" placeholder="Digite a Coordenada (LONG)">
+                </div>
+                <div class="campo" style="justify-content: flex-end;">
+                  <button type="button" id="btn-validar-coordenadas" class="botao botao-verde" style="min-height: 38px;">
+                    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                      <path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7Zm0 9.5A2.5 2.5 0 1 1 12 6a2.5 2.5 0 0 1 0 5.5Z"/>
+                    </svg>
+                    Validar Coordenadas
+                  </button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= ABA 4 ================= -->
+      <section class="painel" id="painel-4" role="tabpanel" aria-labelledby="aba-4" hidden>
+        <div class="card">
+          <div class="card-titulo">Dados da(s) Vitima(s)</div>
+          <div class="card-corpo">
+
+            <div class="acoes-vitima">
+              <button type="button" id="btn-pesquisar-vitima" class="botao botao-azul">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <circle cx="11" cy="11" r="6"/><path d="m16 16 5 5" stroke-linecap="round"/>
+                </svg>
+                PESQUISAR VÍTIMA JÁ CADASTRADA
+              </button>
+              <button type="button" id="btn-nova-vitima" class="botao botao-verde">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+                  <path d="M12 5v14M5 12h14" stroke-linecap="round"/>
+                </svg>
+                CADASTRAR UMA NOVA VÍTIMA
+              </button>
+            </div>
+
+            <div id="tela-vitima-inicial"></div>
+
+            <div id="tela-vitima-pesquisa" hidden>
+              <div class="caixa-pesquisa">
+                <select id="pesquisa-por" name="pesquisaPor" aria-label="Pesquisar por">
+                  <option value="">Pesquisar por:</option>
+                  <option value="NIC">NIC</option>
+                  <option value="NOME">NOME</option>
+                  <option value="CPF">CPF</option>
+                </select>
+
+                <button type="button" id="btn-executar-pesquisa" class="botao botao-azul botao-pesquisar">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <circle cx="11" cy="11" r="6"/><path d="m16 16 5 5" stroke-linecap="round"/>
+                  </svg>
+                  Pesquisar
+                </button>
+
+                <p id="resultado-pesquisa-vitima" class="aviso aviso-neutro" hidden>Nenhuma vítima encontrada nesta simulação.</p>
+              </div>
+            </div>
+
+            <div id="form-vitima" hidden>
+              <p id="aviso-nic" class="aviso aviso-nic" hidden>Informe o NIC para liberar o preenchimento.</p>
+
+              <div class="linha-vitima">
+                <div class="par">
+                  <label for="vitima-ignorado">Ignorado(a)?</label>
+                  <select id="vitima-ignorado" name="vitimaIgnorado"></select>
+                </div>
+                <div class="par">
+                  <label for="nic">NIC.</label>
+                  <input id="nic" name="nic" type="text" autocomplete="off" class="longo">
+                </div>
+                <div class="par">
+                  <label for="numeroDo">Nº D.O.:</label>
+                  <input id="numeroDo" name="numeroDo" type="text" placeholder="Digite o Número do DO" class="longo">
+                </div>
+              </div>
+
+              <div class="linha-vitima">
+                <div class="par">
+                  <label for="nomeVitima">Nome:</label>
+                  <input id="nomeVitima" name="nomeVitima" type="text" placeholder="Digita o Nome da Vitima" class="nome">
+                </div>
+              </div>
+              <div class="linha-vitima">
+                <div class="par">
+                  <label for="nomeMae">Nome Mãe:</label>
+                  <input id="nomeMae" name="nomeMae" type="text" placeholder="Digita o Nome da Mãe da Vitima/Periciando" class="nome">
+                </div>
+              </div>
+              <div class="linha-vitima">
+                <div class="par">
+                  <label for="nomePai">Nome Pai:</label>
+                  <input id="nomePai" name="nomePai" type="text" placeholder="Digita o Nome do Pai da Vitima/Periciando" class="nome">
+                </div>
+              </div>
+
+              <div class="linha-vitima">
+                <div class="par">
+                  <label for="sexo">Sexo:</label>
+                  <select id="sexo" name="sexo" class="longo"></select>
+                </div>
+                <div class="par">
+                  <label for="dataNascimentoVitima">Data de Nascimento:</label>
+                  <input id="dataNascimentoVitima" name="dataNascimento" type="text" placeholder="Digite a data de Nascimento" class="longo">
+                </div>
+                <div class="par">
+                  <label for="idade">Idade:</label>
+                  <span id="idade" class="idade-valor">0</span>
+                </div>
+              </div>
+
+              <div class="linha-vitima">
+                <div class="par">
+                  <label for="cpfVitima">CPF:</label>
+                  <input id="cpfVitima" name="cpf" type="text" placeholder="Digita o CPF" class="curto">
+                </div>
+                <div class="par">
+                  <label for="rgVitima">RG:</label>
+                  <input id="rgVitima" name="rg" type="text" placeholder="Digita o RG" class="medio">
+                </div>
+                <div class="par">
+                  <label for="orgaoExpedidor">Órgão Expedidor</label>
+                  <input id="orgaoExpedidor" name="orgaoExpedidor" type="text" class="medio">
+                </div>
+                <div class="par">
+                  <label for="ufExpedidor">UF Expedidor</label>
+                  <select id="ufExpedidor" name="ufExpedidor" class="uf"></select>
+                </div>
+              </div>
+
+              <div class="linha-vitima">
+                <div class="par">
+                  <label for="nacionalidade">Nacionalidade:</label>
+                  <select id="nacionalidade" name="nacionalidade" class="longo"></select>
+                </div>
+                <div class="par">
+                  <label for="paisNacionalidade">Pais da Nacionalidade:</label>
+                  <select id="paisNacionalidade" name="paisNacionalidade" class="longo" disabled></select>
+                </div>
+              </div>
+
+              <div class="linha-vitima">
+                <div class="par">
+                  <label for="ufNascimento">UF Nascimento:</label>
+                  <select id="ufNascimento" name="ufNascimento" class="longo"></select>
+                </div>
+                <div class="par">
+                  <label for="cidadeNascimento">Cidade Nascimento:</label>
+                  <select id="cidadeNascimento" name="cidadeNascimento" class="longo"></select>
+                </div>
+              </div>
+
+              <div class="linha-vitima">
+                <div class="par">
+                  <label for="passaporte">Passaporte Nº:</label>
+                  <input id="passaporte" name="passaporte" type="text" placeholder="Digita o Nº do Passaport" class="longo" disabled>
+                </div>
+                <div class="par">
+                  <label for="corRaca">Cor/Raça:</label>
+                  <select id="corRaca" name="corRaca" class="longo"></select>
+                </div>
+              </div>
+
+              <div class="linha-vitima">
+                <div class="par">
+                  <label for="estadoCivil">Estado Civil:</label>
+                  <select id="estadoCivil" name="estadoCivil" class="longo"></select>
+                </div>
+                <div class="par">
+                  <label for="genero">Gênero</label>
+                  <select id="genero" name="genero" class="longo"></select>
+                </div>
+              </div>
+
+              <div class="linha-vitima">
+                <div class="par">
+                  <label for="nomeSocial">Nome Social:</label>
+                  <input id="nomeSocial" name="nomeSocial" type="text" placeholder="Digita o Nome Social da Vitima" class="longo">
+                </div>
+              </div>
+
+              <div class="card bloco-endereco">
+                <div class="card-titulo">Endereço</div>
+                <div class="card-corpo">
+                  <div class="linha-vitima">
+                    <div class="par">
+                      <label for="ufResidencia">UF Residencia:</label>
+                      <select id="ufResidencia" name="ufResidencia" class="longo"></select>
+                    </div>
+                    <div class="par">
+                      <label for="cidadeResidencia">Cidade:</label>
+                      <select id="cidadeResidencia" name="cidadeResidencia" class="longo"></select>
+                    </div>
+                  </div>
+                  <div class="linha-vitima">
+                    <div class="par">
+                      <label for="bairroResidencia">Bairro:</label>
+                      <select id="bairroResidencia" name="bairroResidencia" class="longo"></select>
+                    </div>
+                    <div class="par">
+                      <label for="enderecoVitima">Endereço:</label>
+                      <input id="enderecoVitima" name="endereco" type="text" class="longo">
+                    </div>
+                  </div>
+                  <div class="linha-vitima">
+                    <div class="par">
+                      <label for="telefone">Telefone:</label>
+                      <input id="telefone" name="telefone" type="text" class="longo">
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="linha-botoes">
+                <button type="button" id="btn-cancelar-cadastro" class="botao botao-vermelho">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+                    <path d="m15 6-6 6 6 6" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M20 6 14 12l6 6" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  CANCELAR CADASTRO DIGITADO
+                </button>
+                <button type="button" id="btn-cadastrar-vitima" class="botao botao-verde">
+                  <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M5 3h11l3 3v15H5V3Zm2 2v14h10V7h-3V5H7Zm2 6h6v2H9v-2Z"/>
+                  </svg>
+                  CADASTRAR NOVA VITIMA DIGITADA
+                </button>
+              </div>
+            </div>
+
           </div>
         </div>
 
-        <div class="linha">
-          <div>
-            <label for="numeroRequisicao">Número da requisição</label>
-            <input id="numeroRequisicao" name="numeroRequisicao" type="text" autocomplete="off">
-          </div>
-          <div>
-            <label for="numeroRegistro">Número de registro</label>
-            <input id="numeroRegistro" name="numeroRegistro" type="text" autocomplete="off">
-          </div>
+        <div class="rodape-ccsi">CCSI - Controle de Custódia Sistema Integrado</div>
+      </section>
+
+      <!-- ================= ABA 5 ================= -->
+      <section class="painel" id="painel-5" role="tabpanel" aria-labelledby="aba-5" hidden>
+        <div class="card">
+          <div class="aviso-detalhar">Conteúdo a detalhar</div>
         </div>
+      </section>
 
-        <div class="linha">
-          <div>
-            <label for="dataRequisicao">Data da requisição</label>
-            <input id="dataRequisicao" name="dataRequisicao" type="text" placeholder="DD/MM/AAAA" autocomplete="off">
-          </div>
-          <div>
-            <label for="tipoExame">Tipo de exame</label>
-            <input id="tipoExame" name="tipoExame" type="text" autocomplete="off">
-          </div>
+      <!-- ================= ABA 6 ================= -->
+      <section class="painel" id="painel-6" role="tabpanel" aria-labelledby="aba-6" hidden>
+        <div class="card">
+          <div class="aviso-detalhar">Conteúdo a detalhar</div>
         </div>
+      </section>
 
-        <div class="linha">
-          <div>
-            <label for="destinoExame">Destino do exame</label>
-            <select id="destinoExame" name="destinoExame">
-              <option value="">Selecione...</option>
-              <option value="IML">Instituto Médico Legal</option>
-              <option value="DML">Departamento Médico Legal</option>
-              <option value="HOSPITAL">Hospital de referência</option>
-              <option value="OUTRO">Outro destino</option>
-            </select>
-          </div>
-          <div></div>
-        </div>
-      </fieldset>
-    </section>
-
-    <!-- ===================== ABA 2: EXAMINADO ===================== -->
-    <section class="painel" id="painel-examinado" role="tabpanel">
-      <fieldset>
-        <legend>Dados do examinado</legend>
-
-        <div class="linha unica">
-          <div>
-            <label for="nomeExaminado">Nome do examinado</label>
-            <input id="nomeExaminado" name="nomeExaminado" type="text" autocomplete="off">
-          </div>
-        </div>
-
-        <div class="linha">
-          <div>
-            <label for="dataNascimento">Data de nascimento</label>
-            <input id="dataNascimento" name="dataNascimento" type="text" placeholder="DD/MM/AAAA" autocomplete="off">
-          </div>
-          <div>
-            <label for="rg">RG</label>
-            <input id="rg" name="rg" type="text" autocomplete="off">
-          </div>
-        </div>
-
-        <div class="linha">
-          <div>
-            <label for="cpf">CPF</label>
-            <input id="cpf" name="cpf" type="text" autocomplete="off">
-          </div>
-          <div>
-            <label for="nomeMae">Nome da mãe</label>
-            <input id="nomeMae" name="nomeMae" type="text" autocomplete="off">
-          </div>
-        </div>
-
-        <div class="linha unica">
-          <div>
-            <label for="nomePai">Nome do pai</label>
-            <input id="nomePai" name="nomePai" type="text" autocomplete="off">
-          </div>
-        </div>
-
-        <div class="linha unica">
-          <div>
-            <label for="endereco">Endereço</label>
-            <textarea id="endereco" name="endereco"></textarea>
-          </div>
-        </div>
-      </fieldset>
-    </section>
-
-    <!-- ===================== ABA 3: FATOS ===================== -->
-    <section class="painel" id="painel-fatos" role="tabpanel">
-      <fieldset>
-        <legend>Fatos e circunstâncias</legend>
-
-        <div class="linha">
-          <div>
-            <label for="localFato">Local do fato</label>
-            <input id="localFato" name="localFato" type="text" autocomplete="off">
-          </div>
-          <div>
-            <label for="dataFato">Data do fato</label>
-            <input id="dataFato" name="dataFato" type="text" placeholder="DD/MM/AAAA" autocomplete="off">
-          </div>
-        </div>
-
-        <div class="linha unica">
-          <div>
-            <label for="fatos">Descrição dos fatos</label>
-            <textarea id="fatos" name="fatos"></textarea>
-          </div>
-        </div>
-
-        <div class="linha unica">
-          <div>
-            <label for="observacoes">Observações</label>
-            <textarea id="observacoes" name="observacoes"></textarea>
-          </div>
-        </div>
-      </fieldset>
-    </section>
-  </form>
-
-  <div id="resultado" role="status" aria-live="polite"></div>
-</main>
-
-<!--
-  ATENCAO: estes botoes existem de proposito. A ferramenta de preenchimento
-  NUNCA deve clicar neles. Sao clicados apenas pelo operador, manualmente.
-  Os testes automatizados verificam que nenhum clique programatico acontece.
--->
-<div class="rodape">
-  <button type="button" class="btn btn-secundario" id="btn-cancelar">Cancelar</button>
-  <button type="button" class="btn btn-secundario" id="btn-salvar">Salvar rascunho</button>
-  <button type="button" class="btn btn-secundario" id="btn-enviar">Enviar para análise</button>
-  <button type="button" class="btn btn-secundario" id="btn-finalizar">Finalizar</button>
-  <button type="button" class="btn btn-primario" id="btn-cadastrar">Cadastrar</button>
+    </form>
+  </main>
 </div>
 
+<script src="municipios-ibge.js"></script>
+<script src="bairros-por-cidade.js"></script>
 <script>
 (function () {
   'use strict';
 
-  // ---------------- Dados das listas (simulam o cadastro do sistema) ----------------
-  var ORGAOS = [
-    'Instituto Médico Legal de São Paulo',
-    'Instituto Médico Legal do Rio de Janeiro',
-    'Departamento Médico Legal de Minas Gerais',
-    'Instituto de Criminalística do Paraná',
-    'Ministério Público de São Paulo',
-    'Ministério Público do Rio de Janeiro',
-    'Polícia Civil de Santa Catarina',
-    'Polícia Federal - Superintendência Regional'
+  /* =====================================================================
+     DADOS DO SISTEMA
+     As listas abaixo sao as opcoes reais do sistema oficial, transcritas
+     dos prints. Listas marcadas como "exemplo" (orgaos, autoridades, CEP)
+     sao apenas dados de teste da simulacao.
+     ===================================================================== */
+
+  var UFS = [
+    'Acre', 'Alagoas', 'Amapá', 'Amazonas', 'Bahia', 'Ceará', 'Distrito Federal',
+    'Espírito Santo', 'Goiás', 'Maranhão', 'Mato Grosso', 'Mato Grosso do Sul',
+    'Minas Gerais', 'Pará', 'Paraíba', 'Paraná', 'Pernambuco', 'Piauí',
+    'Rio de Janeiro', 'Rio Grande do Norte', 'Rio Grande do Sul', 'Rondônia',
+    'Roraima', 'Santa Catarina', 'São Paulo', 'Sergipe', 'Tocantins'
   ];
 
-  var AUTORIDADES = [
-    'Delegado de Polícia Dr. Ricardo Almeida',
-    'Delegada de Polícia Dra. Fernanda Souza',
-    'Perito Médico Legista Dr. João Batista',
-    'Perita Médica Legista Dra. Cláudia Menezes',
-    'Juiz de Direito Dr. Marcelo Tavares',
-    'Promotor de Justiça Dr. Fernando Costa',
-    'Dra. Fernanda Souza'
+  /* A API do IBGE usa siglas; os selects usam o nome por extenso. */
+  var SIGLAS_UF = {
+    'Acre': 'AC', 'Alagoas': 'AL', 'Amapá': 'AP', 'Amazonas': 'AM', 'Bahia': 'BA',
+    'Ceará': 'CE', 'Distrito Federal': 'DF', 'Espírito Santo': 'ES', 'Goiás': 'GO',
+    'Maranhão': 'MA', 'Mato Grosso': 'MT', 'Mato Grosso do Sul': 'MS',
+    'Minas Gerais': 'MG', 'Pará': 'PA', 'Paraíba': 'PB', 'Paraná': 'PR',
+    'Pernambuco': 'PE', 'Piauí': 'PI', 'Rio de Janeiro': 'RJ',
+    'Rio Grande do Norte': 'RN', 'Rio Grande do Sul': 'RS', 'Rondônia': 'RO',
+    'Roraima': 'RR', 'Santa Catarina': 'SC', 'São Paulo': 'SP', 'Sergipe': 'SE',
+    'Tocantins': 'TO'
+  };
+
+  var EXAMES = [
+    'DANO PSIQUICO EM VÍTIMAS DE VIOLÊNCIA',
+    'EXAME ANTROPOLÓGICO',
+    'EXAME CORPORAL COM LESÃO',
+    'EXAME CORPORAL SEM LESÃO',
+    'EXAME DE DANO EMOCIONAL',
+    'EXAME DE LESÃO CORPORAL COMPLEMENTAR (SANIDADE)',
+    'EXAME CORPORAL COMPLEMENTAR (SANIDADE)',
+    'EXAME DE SANIDADE MENTAL',
+    'EXAME PARA CONSTATAÇÃO DE EMBRIAGUEZ',
+    'EXAME PARA ESTIMATIVA DE IDADE',
+    'EXAME SEXOLÓGICO',
+    'EXUMAÇÃO CADAVÉRICA',
+    'LESÃO CORPORAL-DPVAT',
+    'NECROPSIA',
+    'PERICIA PSICOLOGICA EM CRIANÇAS E ADOLESCENTES VITIMAS DE ABUSO SEXUAL'
   ];
+
+  var FATOS = [
+    'acidente',
+    'acidente de trabalho',
+    'acidente de trânsito',
+    'Adulteração de quilometragem de veículo',
+    'afogamento',
+    'antropologia',
+    'arrombamento',
+    'crime contra a fauna',
+    'crime contra a fauna/flora',
+    'crime contra a fauna/flora/poluição',
+    'crime contra a poluição/fauna',
+    'crime contra a poluição/flora',
+    'crime contra flora',
+    'crime de poluição',
+    'crime sexual',
+    'danos em propriedade privada',
+    'danos em propriedade pública',
+    'desabamento',
+    'doença',
+    'eletroplessão',
+    'envenenamento',
+    'explosão',
+    'explosão agência bancária',
+    'exumações',
+    'feto',
+    'fraude em/através de dispositivos eletrônicos',
+    'furto de água',
+    'furto de energia elétrica',
+    'homicídio',
+    'indeterminado',
+    'inumações',
+    'local de fabricação/plantio/armazenamento drogas',
+    'local envolvido em infração penal',
+    'morte a esclarecer',
+    'ofensa física',
+    'queda da própria altura',
+    'queda de nível',
+    'queimadura',
+    'raio',
+    'sufocação',
+    'suicídio',
+    'tentativa de homicídio'
+  ];
+
+  /* Objeto utilizado: habilitado apenas para os fatos previstos no sistema.
+     "tentativa de homicídio" NAO habilita (lapso do sistema real, replicado). */
+  var OBJETOS_POR_FATO = {
+    'acidente de transito': ['carro', 'moto', 'trator', 'atropelamento', 'trem', 'bicicleta', 'outros'],
+    'homicidio': ['arma de fogo', 'arma branca', 'espancamento', 'esganadura', 'estrangulamento', 'paulada'],
+    'sufocacao': ['indireta', 'direta'],
+    'suicidio': ['arma de fogo', 'arma branca', 'envenenamento', 'enforcamento']
+  };
+
+  var CVLI = ['SIM', 'NÃO', 'A ESCLARECER'];
+  var TIPOS_LOCAL = [
+    'unidade hospitalar', 'via publica', 'residencia', 'estabelecimento privado',
+    'estabelecimento publico', 'meio liquido', 'meio de vegetação'
+  ];
+  var SIM_NAO = ['Sim', 'Não'];
+  var IGNORADO = ['Não', 'Sim'];
+  var SEXOS = ['Masculino', 'feminino', 'Não identificado'];
+  var NACIONALIDADES = [
+    'Brasileira',
+    'Brasileira: nascido no exterior ou naturalizado',
+    'estrangeira'
+  ];
+  var PAISES = [
+    'Argentina', 'Bolívia', 'Chile', 'Colômbia', 'Paraguai', 'Peru', 'Uruguai',
+    'Venezuela', 'Portugal', 'Espanha', 'Estados Unidos', 'outros'
+  ];
+  var CORES_RACA = ['branca', 'Preta', 'Amarela', 'Parda', 'indigena', 'Não declarada'];
+  var ESTADOS_CIVIS = ['Solteiro(a)', 'Casado(a)', 'Divorciado(a)', 'Viúvo(a)'];
+  var GENEROS = [
+    'Mulher Transgenero', 'Homem transexual', 'Mulher transexual', 'Cisgenero',
+    'não sei responder', 'prefiro não responder', 'outros'
+  ];
+  var POLICIAL_ENVOLVIDO = [
+    'NÃO', 'SIM COMO VÍTIMA', 'SIM COMO AUTOR', 'SIM VÍTIMA E AUTOR',
+    'SIM — CLASSIFICAÇÃO NÃO INFORMADA'
+  ];
+  var REGISTROS = ['Com Ofício', 'Sem Ofício'];
+  var TIPOS_AUTORIDADE = ['DELEGADO(A)', 'JUIZ(A)', 'OUTRO', 'PERITO(A)', 'PROMOTOR(A)'];
+
+  /* Dados de exemplo da simulacao (o cadastro real e dinamico). */
+  var ORGAOS = [
+  "IML",
+  "Instituto Médico Legal de São Paulo",
+  "Instituto Médico Legal do Rio de Janeiro",
+  "Departamento Médico Legal de Minas Gerais",
+  "Instituto de Criminalística do Paraná",
+  "Ministério Público de São Paulo",
+  "Ministério Público do Rio de Janeiro",
+  "Polícia Civil de Santa Catarina",
+  "Polícia Federal - Superintendência Regional",
+  "Delegacia Distrital de Campina Grande",
+  "Central de Flagrantes de Campina Grande",
+  "Central de Polícia Civil de Campina Grande",
+  "Delegacia do Município de Dona Inês",
+  "Delegacia do Município de Montadas",
+  "Delegacia do Município de Nova Floresta/PB",
+  "Delegacia de Polícia Civil — 6º Delegacia Distrital de Campina Grande/PB",
+  "Delegacia de Polícia Civil — 3º Delegacia Distrital de Campina Grande/PB",
+  "Delegacia de Polícia Civil — 7º Delegacia Distrital de Campina Grande/PB",
+  "Central de Polícia Civil de Campina Grande - Setor de Boletim de Ocorrência",
+  "Delegacia de Polícia Civil — Delegacia Especializada de Homicídios e Proteção à Pessoa de Campina Grande/PB",
+  "Delegacia de Polícia Civil — Delegacia Especializada da Mulher de Campina Grande - Zona Oeste/PB",
+  "Delegacia de Polícia Civil — Delegacia Especializada de Repressão Aos Crimes Contra a Infância e a Juventude de Campina Grande/PB",
+  "Delegacia de Polícia Civil — Delegacia do Município de Dona Inês/PB",
+  "Delegacia de Polícia Civil — Delegacia do Município de Fagundes/PB",
+  "Delegacia de Polícia Cívil — Delegacia do Município de Puxinanã/PB",
+  "Delegacia de Polícia Civil — 4º Delegacia Distrital de Campina Grande/PB",
+  "Delegacia de Polícia Civil — 2º Delegacia Distrital de Campina Grande/PB",
+  "Delegacia de Polícia Civil — 5º Delegacia Distrital de Campina Grande/PB",
+  "Delegacia de Polícia Civil — Delegacia Especializada de Roubos e Furtos de Campina Grande/PB",
+  "Delegacia de Polícia Civil — 1º Delegacia Distrital de Campina Grande/PB",
+  "Delegacia de Polícia Civil — Central de Flagrantes de Campina Grande/PB",
+  "Delegacia de Polícia Civil — Delegacia Especializada da Mulher - Plantão Centralizado Campina Grande/PB",
+  "Delegacia de Polícia Civil — Central de Flagrantes de Juazeirinho/PB",
+  "Delegacia de Polícia Civil — Delegacia Especializada de Acidentes de Veículos de Campina Grande/PB"
+];
+  var AUTORIDADES = [
+  "Delegado de Polícia Dr. Ricardo Almeida",
+  "Delegada de Polícia Dra. Fernanda Souza",
+  "Perito Médico Legista Dr. João Batista",
+  "Perita Médica Legista Dra. Cláudia Menezes",
+  "Juiz de Direito Dr. Marcelo Tavares",
+  "Promotor de Justiça Dr. Fernando Costa",
+  "Dra. Fernanda Souza",
+  "Danilo Dutra Campos",
+  "Renatta Dias Aureliano",
+  "Luciano Bezerra Serra Seca",
+  "Cícero Pereira Filho",
+  "Gilson de Jesus Teles",
+  "JOSE ADRIANO DA SILVA OLIVEIRA",
+  "FERNANDA MARIA FERNANDES MOURA DE ALBUQUERQUE",
+  "José Everaldo Alves de Miranda",
+  "RENATO DE SOUZA JUNIOR",
+  "Rodrigo Alexandre de Souza",
+  "FRANCISCO EUDO BRASILEIRO JUNIOR",
+  "Suelane Guimarães Souto",
+  "Demétrius Patrício Lima de Melo",
+  "THALES EMANUEL ALVES TRUTA",
+  "Rúbia Christianni de Freitas Vieira"
+];
+
+  /* Municipios por UF (API do IBGE) e bairros por cidade (dados de simulacao). */
+  var MUNICIPIOS = window.MUNICIPIOS_POR_UF || {};
+  var BAIRROS = window.BAIRROS_POR_CIDADE || {};
+  var CIDADES_PB = (MUNICIPIOS.PB || []).slice();
+
+  /* CEPs de exemplo (tabela local de simulacao, sem consulta externa). */
+  var CEPS = {
+    '58000000': { cidade: 'João Pessoa' },
+    '58400000': { cidade: 'Campina Grande' },
+    '58300000': { cidade: 'Santa Rita' }
+  };
+
+  /* =====================================================================
+     UTILIDADES
+     ===================================================================== */
+
+  function $(id) { return document.getElementById(id); }
+
+  function normalizar(texto) {
+    return String(texto || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .toLowerCase();
+  }
+
+  function definirOpcoes(select, opcoes, textoInicial) {
+    if (!select) return;
+    select.innerHTML = '';
+    if (textoInicial !== undefined && textoInicial !== null) {
+      var inicial = document.createElement('option');
+      inicial.value = '';
+      inicial.textContent = textoInicial;
+      select.appendChild(inicial);
+    }
+    opcoes.forEach(function (texto) {
+      var opcao = document.createElement('option');
+      opcao.value = texto;
+      opcao.textContent = texto;
+      select.appendChild(opcao);
+    });
+  }
+
+  function definirValor(select, valor) {
+    if (!select) return;
+    select.value = valor;
+  }
+
+  /* =====================================================================
+     MASCARAS (o app digita apenas numeros; a tela insere a pontuacao)
+     ===================================================================== */
+
+  function somenteDigitos(valor) {
+    return String(valor || '').replace(/\D/g, '');
+  }
+
+  function formatarData(valor) {
+    var d = somenteDigitos(valor).slice(0, 8);
+    var texto = d.slice(0, 2);
+    if (d.length > 2) texto += '/' + d.slice(2, 4);
+    if (d.length > 4) texto += '/' + d.slice(4, 8);
+    return texto;
+  }
+
+  function formatarDataHora(valor) {
+    var d = somenteDigitos(valor).slice(0, 12);
+    var texto = formatarData(d.slice(0, 8));
+    if (d.length > 8) texto += ' ' + d.slice(8, 10);
+    if (d.length > 10) texto += ':' + d.slice(10, 12);
+    return texto;
+  }
+
+  function formatarCpf(valor) {
+    var d = somenteDigitos(valor).slice(0, 11);
+    var texto = d.slice(0, 3);
+    if (d.length > 3) texto += '.' + d.slice(3, 6);
+    if (d.length > 6) texto += '.' + d.slice(6, 9);
+    if (d.length > 9) texto += '-' + d.slice(9, 11);
+    return texto;
+  }
+
+  function aplicarMascara(campo, formatador, aoFormatar) {
+    if (!campo) return;
+    campo.addEventListener('input', function () {
+      var formatado = formatador(campo.value);
+      if (formatado !== campo.value) {
+        campo.value = formatado;
+      }
+      if (typeof aoFormatar === 'function') {
+        aoFormatar();
+      }
+    });
+  }
+
+  function mostrar(aba) {
+    document.querySelectorAll('.aba').forEach(function (botao) {
+      botao.setAttribute('aria-selected', String(botao.getAttribute('data-aba') === String(aba)));
+    });
+    document.querySelectorAll('.painel').forEach(function (painel) {
+      painel.hidden = painel.id !== ('painel-' + aba);
+    });
+    atualizarEstado();
+  }
+
+  /* =====================================================================
+     ESTADO OBSERVAVEL (usado pelos testes e pela leitura da ferramenta)
+     ===================================================================== */
+
+  window.__simulacao = {
+    abaAtiva: '1',
+    exame: '',
+    nic: '',
+    nicPreenchido: false,
+    formularioVitimaAberto: false,
+    camposLiberados: false,
+    telaVitima: 'inicial',
+    valoresExtraidos: []
+  };
+  window.__cliquesDeEnvio = 0;
+  window.__simulacaoCadastrada = false;
+
+  /** Qual tela da aba 4 esta visivel: inicial, cadastro ou pesquisa. */
+  function telaVitimaAtual() {
+    if ($('form-vitima') && !$('form-vitima').hidden) return 'cadastro';
+    if ($('tela-vitima-pesquisa') && !$('tela-vitima-pesquisa').hidden) return 'pesquisa';
+    return 'inicial';
+  }
 
   /**
-   * Combo pesquisavel: mesmo comportamento do sistema oficial.
-   * Digitar filtra; clicar na opcao seleciona; Enter tambem seleciona a
-   * primeira opcao (a ferramenta nao usa Enter, mas usuarios usam).
+   * Guarda uma copia do valor que veio da requisicao nos combos de orgao e
+   * autoridade. A lista fica em window.__simulacao.valoresExtraidos e sera usada
+   * no futuro para montar opcoes dinamicas.
    */
+  function registrarValorExtraido(campo, valor, itens) {
+    var texto = String(valor || '').trim();
+    if (texto === '') return;
+    var lista = window.__simulacao.valoresExtraidos;
+    var jaRegistrado = lista.some(function (registro) {
+      return registro.campo === campo && registro.valor === texto;
+    });
+    if (jaRegistrado) return;
+    lista.push({
+      campo: campo,
+      valor: texto,
+      naLista: itens.indexOf(texto) !== -1,
+      registradoEm: new Date().toISOString()
+    });
+  }
+
+  function atualizarEstado() {
+    var ativa = document.querySelector('.aba[aria-selected="true"]');
+    var form = $('form-vitima');
+    window.__simulacao.abaAtiva = ativa ? ativa.getAttribute('data-aba') : '';
+    window.__simulacao.exame = $('exame') ? $('exame').value : '';
+    window.__simulacao.nic = $('nic') ? $('nic').value : '';
+    window.__simulacao.nicPreenchido = nicPreenchido();
+    window.__simulacao.formularioVitimaAberto = Boolean(form && !form.hidden);
+    window.__simulacao.camposLiberados = Boolean(
+      form && !form.hidden && (!exigeNic() || nicPreenchido())
+    );
+    window.__simulacao.telaVitima = telaVitimaAtual();
+    if ($('nic')) {
+      $('nic').dataset.preenchido = String(window.__simulacao.nicPreenchido);
+    }
+    if (form) {
+      form.dataset.aberto = String(!form.hidden);
+    }
+  }
+
+  /* =====================================================================
+     COMBO PESQUISAVEL (mesmo comportamento do sistema oficial)
+     ===================================================================== */
+
   function criarCombo(idCampo, idLista, itens) {
-    var campo = document.getElementById(idCampo);
-    var lista = document.getElementById(idLista);
-    var valorSelecionado = '';
+    var campo = $(idCampo);
+    var lista = $(idLista);
+    if (!campo || !lista) return;
 
     function opcoesFiltradas() {
-      var filtro = campo.value.trim().toLowerCase();
+      var filtro = normalizar(campo.value);
       return itens.filter(function (item) {
-        return filtro === '' || item.toLowerCase().indexOf(filtro) !== -1;
+        return filtro === '' || normalizar(item).indexOf(filtro) !== -1;
       });
     }
 
     function renderizar() {
       var encontrados = opcoesFiltradas();
       lista.innerHTML = '';
-
       if (encontrados.length === 0) {
         var vazio = document.createElement('li');
         vazio.className = 'vazio';
@@ -350,20 +1403,13 @@
         lista.appendChild(vazio);
         return;
       }
-
       encontrados.forEach(function (item) {
         var li = document.createElement('li');
         li.setAttribute('role', 'option');
         li.setAttribute('data-valor', item);
         li.textContent = item;
-        if (item === valorSelecionado) {
-          li.setAttribute('aria-selected', 'true');
-        }
-        li.addEventListener('mousedown', function (evento) {
-          evento.preventDefault(); // evita perder o foco antes do clique
-        });
+        li.addEventListener('mousedown', function (evento) { evento.preventDefault(); });
         li.addEventListener('click', function () {
-          valorSelecionado = item;
           campo.value = item;
           fechar();
           campo.dispatchEvent(new Event('change', { bubbles: true }));
@@ -377,7 +1423,6 @@
       lista.classList.add('aberta');
       campo.setAttribute('aria-expanded', 'true');
     }
-
     function fechar() {
       lista.classList.remove('aberta');
       campo.setAttribute('aria-expanded', 'false');
@@ -385,10 +1430,7 @@
 
     campo.addEventListener('focus', abrir);
     campo.addEventListener('click', abrir);
-    campo.addEventListener('input', function () {
-      valorSelecionado = '';
-      abrir();
-    });
+    campo.addEventListener('input', abrir);
     campo.addEventListener('keydown', function (evento) {
       if (evento.key === 'Enter') {
         var primeira = lista.querySelector('li[role="option"]');
@@ -401,81 +1443,350 @@
       }
     });
     campo.addEventListener('blur', function () {
+      // Regra de resiliencia: se o valor digitado nao existir na lista, NAO
+      // apagamos. O texto permanece no campo para o operador corrigir.
+      registrarValorExtraido(idCampo, campo.value, itens);
       window.setTimeout(fechar, 120);
     });
+    campo.addEventListener('change', function () {
+      registrarValorExtraido(idCampo, campo.value, itens);
+    });
   }
 
-  criarCombo('orgao', 'orgao-opcoes', ORGAOS);
-  criarCombo('autoridade', 'autoridade-opcoes', AUTORIDADES);
+  /* =====================================================================
+     INICIALIZACAO DAS LISTAS
+     ===================================================================== */
 
-  // ---------------- Abas ----------------
-  var botoesAba = document.querySelectorAll('.abas button[role="tab"]');
-  botoesAba.forEach(function (botao) {
+  definirOpcoes($('policialEnvolvido'), POLICIAL_ENVOLVIDO, 'Selecione');
+  definirOpcoes($('registro'), REGISTROS, null);
+  definirValor($('registro'), 'Com Ofício');
+  definirOpcoes($('tipoAutoridade'), TIPOS_AUTORIDADE, null);
+  definirValor($('tipoAutoridade'), 'DELEGADO(A)');
+
+  definirOpcoes($('nucleo'), ['NUMOL-CG'], null);
+  definirOpcoes($('exame'), EXAMES, 'SELECCIONE O EXAME');
+  definirOpcoes($('realizadoEm'), ['VÍTIMA', 'PRESO'], 'Selecione...');
+  definirOpcoes($('peritoResponsavel'), [], 'SELECCIONE O PERITO(A)');
+  definirOpcoes($('necrotomista'), [], 'SELECCIONE O(A) NECROTOMISTA');
+
+  definirOpcoes($('cvli'), CVLI, 'INFORME');
+  definirOpcoes($('fatoSuposto'), FATOS, 'SELECCIONE O FATO');
+  definirOpcoes($('objetoUtilizado'), [], 'SELECCIONE O OBJETO');
+  definirOpcoes($('cidade'), CIDADES_PB, 'SELECCIONE A CIDADE');
+  definirOpcoes($('bairro'), [], 'Selecione o Bairro');
+  definirOpcoes($('autoridadePresente'), SIM_NAO, 'INFORME');
+  definirOpcoes($('localPreservado'), SIM_NAO, 'INFORME');
+  definirOpcoes($('tipoLocal'), TIPOS_LOCAL, 'SELECIONE');
+
+  definirOpcoes($('vitima-ignorado'), IGNORADO, null);
+  definirValor($('vitima-ignorado'), 'Não');
+  definirOpcoes($('sexo'), SEXOS, 'Selecione o Sexo');
+  definirOpcoes($('ufExpedidor'), UFS, ' ');
+  definirOpcoes($('nacionalidade'), NACIONALIDADES, '-Selecione-');
+  definirOpcoes($('paisNacionalidade'), PAISES, '-Selecione-');
+  definirOpcoes($('ufNascimento'), UFS, 'Selecione a UF de Nascimento');
+  definirOpcoes($('cidadeNascimento'), [], 'Selecione a Cidade de Nascimento');
+  definirOpcoes($('corRaca'), CORES_RACA, 'Selecione a Cor/Raça');
+  definirOpcoes($('estadoCivil'), ESTADOS_CIVIS, 'Selecione Estado Civil');
+  definirOpcoes($('genero'), GENEROS, 'Selecione o Genero');
+  definirOpcoes($('ufResidencia'), UFS, 'Selecione a UF de Residencia');
+  definirOpcoes($('cidadeResidencia'), [], 'Selecione a Cidade');
+  definirOpcoes($('bairroResidencia'), [], 'Selecione o Bairro');
+
+  criarCombo('orgaoSolicitante', 'orgaoSolicitante-opcoes', ORGAOS);
+  criarCombo('orgaoDestino', 'orgaoDestino-opcoes', ORGAOS);
+  criarCombo('autoridadeSolicitante', 'autoridadeSolicitante-opcoes', AUTORIDADES);
+
+  /* =====================================================================
+     ABAS
+     ===================================================================== */
+
+  document.querySelectorAll('.aba').forEach(function (botao) {
     botao.addEventListener('click', function () {
-      var alvo = botao.getAttribute('data-aba');
-      botoesAba.forEach(function (outro) {
-        outro.setAttribute('aria-selected', String(outro === botao));
-      });
-      document.querySelectorAll('.painel').forEach(function (painel) {
-        painel.classList.toggle('ativo', painel.id === 'painel-' + alvo);
-      });
+      mostrar(botao.getAttribute('data-aba'));
     });
   });
 
-  // ---------------- Botoes de envio (somente o operador usa) ----------------
-  var resultado = document.getElementById('resultado');
+  /* =====================================================================
+     ABA 3: OBJETO UTILIZADO DEPENDE DO FATO
+     ===================================================================== */
 
-  function contarPreenchidos() {
-    var campos = document.querySelectorAll('#form-requisicao input, #form-requisicao textarea, #form-requisicao select');
-    var preenchidos = 0;
-    campos.forEach(function (campo) {
-      if (campo.value && campo.value.trim() !== '') preenchidos += 1;
-    });
-    return { preenchidos: preenchidos, total: campos.length };
+  function aplicarObjeto() {
+    var fato = $('fatoSuposto').value;
+    var chave = normalizar(fato);
+    var objetos = OBJETOS_POR_FATO[chave];
+
+    if (!objetos) {
+      definirOpcoes($('objetoUtilizado'), [], 'SELECCIONE O OBJETO');
+      $('objetoUtilizado').disabled = true;
+      return;
+    }
+
+    definirOpcoes($('objetoUtilizado'), objetos, 'SELECCIONE O OBJETO');
+    $('objetoUtilizado').disabled = false;
   }
 
-  document.getElementById('btn-cadastrar').addEventListener('click', function () {
-    var contagem = contarPreenchidos();
-    resultado.className = 'ok';
-    resultado.textContent = 'Cadastro simulado concluído com ' + contagem.preenchidos + ' de ' + contagem.total + ' campos preenchidos. (Na simulação nada é enviado.)';
-    window.__simulacaoCadastrada = true;
+  $('fatoSuposto').addEventListener('change', function () {
+    aplicarObjeto();
+    var temFato = $('fatoSuposto').value !== '';
+    $('autoridadePresente').disabled = !temFato;
+    $('localPreservado').disabled = !temFato;
   });
 
-  document.getElementById('btn-cancelar').addEventListener('click', function () {
-    resultado.className = '';
-    resultado.textContent = 'Operação cancelada pelo operador.';
-    window.__simulacaoCadastrada = false;
-  });
+  /* =====================================================================
+     ABA 3: CEP
+     ===================================================================== */
 
-  // Botoes alternativos de envio. Existem para provar que o protetor da
-  // ferramenta reconhece e bloqueia QUALQUER botao com sentido de envio, nao
-  // apenas o "Cadastrar". Nenhum deles grava nada.
-  [
-    ['btn-salvar', 'Os dados ficaram em rascunho (simulação). A ferramenta não deveria ter clicado aqui.'],
-    ['btn-enviar', 'Envio para análise simulado. A ferramenta não deveria ter clicado aqui.'],
-    ['btn-finalizar', 'Finalização simulada. A ferramenta não deveria ter clicado aqui.'],
-  ].forEach(function (par) {
-    var botao = document.getElementById(par[0]);
-    if (!botao) return;
-    botao.addEventListener('click', function () {
-      resultado.className = 'aviso';
-      resultado.textContent = par[1];
+  function atualizarBairrosAba3() {
+    var cidade = $('cidade').value;
+    definirOpcoes($('bairro'), cidade ? bairrosDaCidade(cidade) : [], 'Selecione o Bairro');
+  }
+
+  function pesquisarCep() {
+    var cep = String($('cep').value || '').replace(/\D/g, '');
+    if (cep.length !== 8) {
+      return;
+    }
+
+    var achado = CEPS[cep];
+    if (!achado) {
+      return;
+    }
+
+    // A lista continua com todas as cidades da Paraiba; o CEP so seleciona uma.
+    definirOpcoes($('cidade'), CIDADES_PB, 'SELECCIONE A CIDADE');
+    definirValor($('cidade'), achado.cidade);
+    atualizarBairrosAba3();
+  }
+
+  $('cidade').addEventListener('change', atualizarBairrosAba3);
+  $('btn-pesquisar-cep').addEventListener('click', pesquisarCep);
+
+  /* =====================================================================
+     ABA 4: VITIMA
+     ===================================================================== */
+
+  function exigeNic() {
+    return normalizar($('exame').value) === 'necropsia';
+  }
+
+  function nicPreenchido() {
+    return String($('nic').value || '').trim() !== '';
+  }
+
+  var CAMPOS_DEPENDENTES = ['paisNacionalidade', 'passaporte'];
+
+  function aplicarDependenciaNacionalidade() {
+    var estrangeira = $('nacionalidade').value === 'estrangeira';
+    $('paisNacionalidade').disabled = !estrangeira;
+    $('passaporte').disabled = !estrangeira;
+    if (!estrangeira) {
+      $('paisNacionalidade').value = '';
+      $('passaporte').value = '';
+    }
+  }
+
+  /* Lista de campos que o bloqueio do NIC controla (nao inclui o proprio NIC). */
+  var CAMPOS_BLOQUEAVEIS = [
+    'vitima-ignorado', 'numeroDo', 'nomeVitima', 'nomeMae', 'nomePai', 'sexo',
+    'dataNascimentoVitima', 'cpfVitima', 'rgVitima', 'orgaoExpedidor', 'ufExpedidor',
+    'nacionalidade', 'ufNascimento', 'cidadeNascimento', 'corRaca', 'estadoCivil',
+    'genero', 'nomeSocial', 'ufResidencia', 'cidadeResidencia', 'bairroResidencia',
+    'enderecoVitima', 'telefone'
+  ];
+
+  function bloquearVitima() {
+    CAMPOS_BLOQUEAVEIS.forEach(function (id) {
+      var campo = $(id);
+      if (campo) campo.disabled = true;
     });
+    $('paisNacionalidade').disabled = true;
+    $('passaporte').disabled = true;
+    $('nic').disabled = false;
+    $('btn-cadastrar-vitima').disabled = true;
+    $('aviso-nic').hidden = false;
+  }
+
+  function liberarVitima() {
+    CAMPOS_BLOQUEAVEIS.forEach(function (id) {
+      var campo = $(id);
+      if (campo) campo.disabled = false;
+    });
+    $('nic').disabled = false;
+    $('btn-cadastrar-vitima').disabled = false;
+    $('aviso-nic').hidden = true;
+    aplicarDependenciaNacionalidade();
+  }
+
+  function atualizarRegraVitima() {
+    var form = $('form-vitima');
+    if (!form || form.hidden) {
+      atualizarEstado();
+      return;
+    }
+    if (exigeNic() && !nicPreenchido()) {
+      bloquearVitima();
+    } else {
+      liberarVitima();
+    }
+    atualizarEstado();
+  }
+
+  $('btn-nova-vitima').addEventListener('click', function () {
+    $('tela-vitima-inicial').hidden = true;
+    $('tela-vitima-pesquisa').hidden = true;
+    $('form-vitima').hidden = false;
+    atualizarRegraVitima();
   });
 
-  // Marcador usado pelos testes: permite detectar clique programatico indevido.
-  // Conta todos os botoes de envio, inclusive os alternativos.
-  window.__cliquesDeEnvio = 0;
-  ['btn-cadastrar', 'btn-cancelar', 'btn-salvar', 'btn-enviar', 'btn-finalizar'].forEach(function (id) {
-    var botao = document.getElementById(id);
+  // Pesquisar vitima abre uma TELA DIFERENTE do cadastro.
+  $('btn-pesquisar-vitima').addEventListener('click', function () {
+    $('tela-vitima-inicial').hidden = true;
+    $('form-vitima').hidden = true;
+    $('tela-vitima-pesquisa').hidden = false;
+    $('resultado-pesquisa-vitima').hidden = true;
+    atualizarEstado();
+  });
+
+  $('btn-executar-pesquisa').addEventListener('click', function () {
+    $('resultado-pesquisa-vitima').hidden = false;
+  });
+
+  function limparFormularioVitima() {
+    CAMPOS_BLOQUEAVEIS.concat(['nic', 'paisNacionalidade', 'passaporte']).forEach(function (id) {
+      var campo = $(id);
+      if (!campo) return;
+      if (campo.tagName === 'SELECT') {
+        campo.selectedIndex = 0;
+      } else {
+        campo.value = '';
+      }
+    });
+    $('idade').textContent = '0';
+    $('aviso-nic').hidden = true;
+    definirOpcoes($('cidadeNascimento'), [], 'Selecione a Cidade de Nascimento');
+    definirOpcoes($('cidadeResidencia'), [], 'Selecione a Cidade');
+    definirOpcoes($('bairroResidencia'), [], 'Selecione o Bairro');
+    $('vitima-ignorado').value = 'Não';
+  }
+
+  $('btn-cancelar-cadastro').addEventListener('click', function () {
+    limparFormularioVitima();
+    $('form-vitima').hidden = true;
+    $('tela-vitima-inicial').hidden = false;
+    atualizarEstado();
+  });
+
+  $('nic').addEventListener('input', atualizarRegraVitima);
+  $('exame').addEventListener('change', atualizarRegraVitima);
+
+  $('nacionalidade').addEventListener('change', aplicarDependenciaNacionalidade);
+
+  /* =====================================================================
+     ABA 4: IDADE
+     ===================================================================== */
+
+  function calcularIdade() {
+    var valor = String($('dataNascimentoVitima').value || '').trim();
+    var partes = valor.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (!partes) {
+      $('idade').textContent = '0';
+      return;
+    }
+    var dia = Number(partes[1]);
+    var mes = Number(partes[2]);
+    var ano = Number(partes[3]);
+    var hoje = new Date();
+    var idade = hoje.getFullYear() - ano;
+    var aindaNaoFez = (hoje.getMonth() + 1) < mes
+      || ((hoje.getMonth() + 1) === mes && hoje.getDate() < dia);
+    if (aindaNaoFez) idade -= 1;
+    $('idade').textContent = String(idade >= 0 ? idade : 0);
+  }
+
+  /* A mascara da data de nascimento tambem recalcula a idade. */
+  aplicarMascara($('dataOficio'), formatarData);
+  aplicarMascara($('dataHoraFato'), formatarDataHora);
+  aplicarMascara($('dataEntradaIpc'), formatarDataHora);
+  aplicarMascara($('dataNascimentoVitima'), formatarData, calcularIdade);
+  aplicarMascara($('cpfVitima'), formatarCpf);
+
+  /* =====================================================================
+     ABA 4: UF -> CIDADE -> BAIRRO (dados de exemplo da simulacao)
+     ===================================================================== */
+
+  function bairrosDaCidade(cidade) {
+    var lista = BAIRROS[cidade];
+    if (lista && lista.length > 0) {
+      return lista.slice();
+    }
+    // Cidade sem base detalhada: lista padrao da simulacao.
+    return ['Centro', 'Zona Rural'];
+  }
+
+  function cidadesDaUf(uf) {
+    var sigla = SIGLAS_UF[uf] || uf;
+    return (MUNICIPIOS[sigla] || []).slice();
+  }
+
+  $('ufNascimento').addEventListener('change', function () {
+    definirOpcoes(
+      $('cidadeNascimento'),
+      cidadesDaUf($('ufNascimento').value),
+      'Selecione a Cidade de Nascimento'
+    );
+  });
+
+  $('ufResidencia').addEventListener('change', function () {
+    definirOpcoes(
+      $('cidadeResidencia'),
+      cidadesDaUf($('ufResidencia').value),
+      'Selecione a Cidade'
+    );
+    definirOpcoes($('bairroResidencia'), [], 'Selecione o Bairro');
+  });
+
+  $('cidadeResidencia').addEventListener('change', function () {
+    var cidade = $('cidadeResidencia').value;
+    definirOpcoes(
+      $('bairroResidencia'),
+      cidade ? bairrosDaCidade(cidade) : [],
+      'Selecione o Bairro'
+    );
+  });
+
+  /* =====================================================================
+     AUDITORIA ANTI-ENVIO
+     Nenhum destes botoes deve ser acionado pela ferramenta. O marcador
+     ajuda os testes a provar que so o operador clicou.
+     ===================================================================== */
+
+  var BOTOES_AUDITADOS = [
+    'btn-finalizar-lancamento', 'btn-voltar', 'btn-novo-orgao', 'btn-nova-autoridade',
+    'btn-adicionar-perito2', 'btn-pesquisar-cep', 'btn-novo-bairro',
+    'btn-validar-coordenadas', 'btn-pesquisar-vitima', 'btn-nova-vitima',
+    'btn-executar-pesquisa',
+    'btn-cancelar-cadastro', 'btn-cadastrar-vitima'
+  ];
+
+  BOTOES_AUDITADOS.forEach(function (id) {
+    var botao = $(id);
     if (!botao) return;
     botao.addEventListener('click', function (evento) {
-      // 0 = clique do operador (real) | 1 = clique simulado pela ferramenta.
       if (evento.isTrusted === false) {
         window.__cliquesDeEnvio += 1;
+        window.__simulacaoCadastrada = true;
       }
     }, true);
   });
+
+  /* =====================================================================
+     ABERTURA
+     ===================================================================== */
+
+  mostrar('1');
+  aplicarObjeto();
+  atualizarEstado();
 })();
 </script>
 </body>
