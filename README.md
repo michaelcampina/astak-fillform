@@ -12,7 +12,6 @@ O FillForm foi projetado para reduzir o retrabalho de digitação sem assumir o 
 - OCR local com Tesseract.js, sem enviar documentos para a nuvem.
 - Extração configurável por rótulos e regras de negócio.
 - Preenchimento campo a campo com leitura de volta e conferência.
-- Regra de bloqueio por NIC para exames de NECROPSIA.
 - Proteção contra cliques acidentais em botões de envio.
 - Página de simulação para validação antes de usar o sistema oficial.
 - Relatórios de teste com tempo, acertos, falhas e valores não encontrados nas listas.
