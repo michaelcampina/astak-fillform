@@ -12,6 +12,7 @@
     "teste:preenchimento": "node testes/executar-teste.js --preenchimento",
     "teste:janela": "node testes/iniciar-teste-janela.js",
     "requisicao-real": "node testes/executar-requisicao-real.js",
+    "consolidar-preenchimento": "node testes/consolidar-preenchimento.js",
     "teste:lote": "node testes/testar-lote-requisicoes.js",
     "atualizar-listas": "node testes/atualizar-listas-simulacao.js",
     "exemplos": "node testes/gerar-exemplos.js",

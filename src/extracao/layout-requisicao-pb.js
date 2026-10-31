@@ -9,15 +9,38 @@
  * aceita uma segunda fonte de texto (a camada digital do PDF) para completar
  * numeros que o OCR tenha truncado.
  *
- * So e usado quando `detectar` reconhece o layout; o extrator padrao continua
- * intacto para o modelo ficticio dos testes.
+ * Regras de negocio aplicadas aqui:
+ *  - Autoridade: prevalece a assinatura ao final; se o final for a mesma pessoa
+ *    com grafia pior, usa a grafia do inicio. Se for outra pessoa, usa o final.
+ *  - RG: numero + orgao expedidor (qualquer sigla) + UF (nome por extenso).
+ *  - Sexo: "identidade de genero"/"sexo" -> Feminino/Masculino.
+ *  - Estado civil: Uniao Estavel -> Solteiro(a).
+ *  - Datas incompletas: data atual / 00:00 (somente oficio e fato).
+ *  - Diretor do NUMOL/NULF: nunca e usado como nome de pessoa.
  */
+
+const DIRETORES = require('../../config/diretores.json');
 
 const MESES = {
   janeiro: '01', fevereiro: '02', marco: '03', abril: '04', maio: '05',
   junho: '06', julho: '07', agosto: '08', setembro: '09', outubro: '10',
   novembro: '11', dezembro: '12',
 };
+
+const UF_POR_SIGLA = {
+  AC: 'Acre', AL: 'Alagoas', AP: 'Amapá', AM: 'Amazonas', BA: 'Bahia',
+  CE: 'Ceará', DF: 'Distrito Federal', ES: 'Espírito Santo', GO: 'Goiás',
+  MA: 'Maranhão', MT: 'Mato Grosso', MS: 'Mato Grosso do Sul',
+  MG: 'Minas Gerais', PA: 'Pará', PB: 'Paraíba', PR: 'Paraná',
+  PE: 'Pernambuco', PI: 'Piauí', RJ: 'Rio de Janeiro',
+  RN: 'Rio Grande do Norte', RS: 'Rio Grande do Sul', RO: 'Rondônia',
+  RR: 'Roraima', SC: 'Santa Catarina', SP: 'São Paulo', SE: 'Sergipe',
+  TO: 'Tocantins',
+};
+
+const CARGOS_PROIBIDOS = (DIRETORES.cargos || []).map((cargo) => semAcento(cargo));
+
+const PALAVRAS_NAO_NOME = /(procedimento|policial|delegacia|secretaria|governo|numol|nulf|n[úu]cleo|diretor|data|ref|local|p[áa]gina|matr[íi]cula|central|flagrante|pol[íi]cia|civil|estado|para[íi]ba|seguran[çc]a|defesa|social|senhor|gerente|ilmo|excelent|atencios|requisit|exame|hist[óo]rico|quesito|cumpriment|assinatura|servidor|periciando|periciado|autoridade|solicitante|requerente|examinado|m[ée]dico|legista|perito|delegado|delegada|rua|avenida|bairro|travessa|campina|n[úu]mero|telefone|contato|vitima|vítima|orgao|órgão|expedidor|uf)/i;
 
 function semAcento(texto) {
   return String(texto ?? '')
@@ -41,6 +64,114 @@ function formatarCpf(digitos) {
   return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9, 11)}`;
 }
 
+function capitalizar(texto) {
+  return limpar(texto).replace(
+    /(^|\s)(\p{L})/gu,
+    (espaco, letra) => espaco + letra.toUpperCase(),
+  );
+}
+
+function formatarData(data) {
+  const dia = String(data.getDate()).padStart(2, '0');
+  const mes = String(data.getMonth() + 1).padStart(2, '0');
+  return `${dia}/${mes}/${data.getFullYear()}`;
+}
+
+function tokensNome(texto) {
+  return semAcento(texto)
+    .replace(/[^a-z ]/g, ' ')
+    .split(/\s+/)
+    .filter((token) => token && !['de', 'da', 'do', 'das', 'dos', 'e'].includes(token));
+}
+
+function levenshtein(a, b) {
+  const m = a.length;
+  const n = b.length;
+  const dp = Array.from({ length: m + 1 }, (_, i) => [i, ...Array(n).fill(0)]);
+  for (let j = 1; j <= n; j += 1) dp[0][j] = j;
+  for (let i = 1; i <= m; i += 1) {
+    for (let j = 1; j <= n; j += 1) {
+      dp[i][j] = Math.min(
+        dp[i - 1][j] + 1,
+        dp[i][j - 1] + 1,
+        dp[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1),
+      );
+    }
+  }
+  return dp[m][n];
+}
+
+/** Diz se dois nomes sao a mesma pessoa, tolerando erros de OCR. */
+function mesmaPessoa(a, b) {
+  const ta = tokensNome(a);
+  const tb = tokensNome(b);
+  if (ta.length === 0 || tb.length === 0) return false;
+
+  const primeiro = ta[0] === tb[0] || levenshtein(ta[0], tb[0]) <= 1;
+  if (!primeiro) return false;
+  if (ta.length === 1 || tb.length === 1) return true;
+
+  const sa = ta.slice(1);
+  const sb = tb.slice(1);
+  return sa.some((x) => sb.some((y) => (
+    x === y
+    || (x.length >= 4 && y.length >= 4 && (x.includes(y) || y.includes(x)))
+    || levenshtein(x, y) <= 1
+  )));
+}
+
+function limparAutoridade(valor) {
+  return limpar(valor)
+    .replace(/\s*[|!—].*$/, '')
+    .replace(/^[^A-Za-zÀ-Ý]+/, '')
+    .replace(/^[A-Za-zÀ-Ý]\s+/, '')
+    .replace(/^[^A-Za-zÀ-Ý]+/, '')
+    .replace(/\s+RA\s*\d+.*$/i, '')
+    .replace(/\s+OAB\s*\d+.*$/i, '')
+    .replace(/\s+\d{2,}.*$/, '')
+    .replace(/[.,;:'"”\s]+$/, '')
+    .trim();
+}
+
+function nomeValido(nome) {
+  if (!nome) return false;
+  if (/\d/.test(nome)) return false;
+  if (PALAVRAS_NAO_NOME.test(nome)) return false;
+  const normalizado = semAcento(nome);
+  if (CARGOS_PROIBIDOS.some((cargo) => cargo && normalizado.includes(cargo))) return false;
+  const palavras = nome.split(/\s+/).filter(Boolean);
+  return palavras.length >= 2 && palavras.length <= 8;
+}
+
+function nomeProibido(nome, nomesProibidos) {
+  const n = semAcento(nome);
+  if (!n) return true;
+  return nomesProibidos.some((proibido) => {
+    const p = semAcento(proibido);
+    return p.length >= 5 && (n === p || n.includes(p) || p.includes(n));
+  });
+}
+
+/** Diretores configurados + a linha "Dr(a). NOME" encontrada no texto. */
+function nomesDoDiretor(texto) {
+  const nomes = [...(DIRETORES.nomes || [])];
+  for (const encontrado of texto.matchAll(/Dr\(a\)\.\s*([^\n]+)/gi)) {
+    const nome = limpar(encontrado[1]).replace(/\s*[-–].*$/, '').trim();
+    if (nome) nomes.push(nome);
+  }
+  return nomes;
+}
+
+function normalizarEstadoCivil(valor) {
+  const v = semAcento(valor).replace(/[()]/g, ' ').replace(/\s+/g, ' ').trim();
+  if (/uniao estavel|uniao estavel/.test(v)) return 'Solteiro(a)';
+  if (/solteir/.test(v)) return 'Solteiro(a)';
+  if (/casad/.test(v)) return 'Casado(a)';
+  if (/divorciad/.test(v)) return 'Divorciado(a)';
+  if (/viuv/.test(v)) return 'Viúvo(a)';
+  return '';
+}
+
 function detectar(linhas) {
   const texto = linhas.join('\n');
   // Requisicoes com periciando (pessoa) e sem periciando (ossada/antropologia).
@@ -55,9 +186,45 @@ function numeroRegistroValido(valor) {
   return /^\d{3,5}\.\d{2}\.\d{4}\.\d{1,2}\.\d{2}\.\d{3}$/.test(valor);
 }
 
+/**
+ * Coleta os nomes ligados a "Delegado(a) de Policia Civil" (depois do cargo e
+ * na linha imediatamente anterior, que e a assinatura). A ultima ocorrencia no
+ * texto e a assinatura; ela prevalece quando for outra pessoa. Se for a mesma
+ * pessoa com grafia pior (OCR), usa a grafia do inicio, que costuma ser a
+ * versao digitada correta.
+ */
+function extrairAutoridade(texto, nomesProibidos) {
+  const candidatos = [];
+
+  const depois = /D[e3]l[a-z]{1,2}g[a4]d[o0]\(a\)?\.?\s*d[eê]\s*Pol[íi]cia\s+Civil\s*:\s*([^\n]+)/gi;
+  for (const encontrado of texto.matchAll(depois)) {
+    const nome = limparAutoridade(encontrado[1]);
+    if (nomeValido(nome) && !nomeProibido(nome, nomesProibidos)) {
+      candidatos.push({ pos: encontrado.index, nome });
+    }
+  }
+
+  const antes = /([^\n]{4,90})\s*\n\s*D[e3]l[a-z]{1,2}g[a4]d[o0]\(a\)?\.?\s*d[eê]\s*Pol[íi]cia\s+Civil/gi;
+  for (const encontrado of texto.matchAll(antes)) {
+    const nome = limparAutoridade(encontrado[1]);
+    if (nomeValido(nome) && !nomeProibido(nome, nomesProibidos)) {
+      candidatos.push({ pos: encontrado.index, nome });
+    }
+  }
+
+  candidatos.sort((a, b) => a.pos - b.pos);
+  if (candidatos.length === 0) return undefined;
+  const primeiro = candidatos[0];
+  const ultimo = candidatos[candidatos.length - 1];
+  if (candidatos.length === 1) return primeiro.nome;
+  if (mesmaPessoa(ultimo.nome, primeiro.nome)) return primeiro.nome;
+  return ultimo.nome;
+}
+
 /** Extrai os campos de um unico texto (OCR ou camada digital). */
 function extrairDoTexto(texto, configuracao) {
   const dados = {};
+  const nomesProibidos = nomesDoDiretor(texto);
 
   // Numero da requisicao: "REQUISICAO DE EXAME Nº 2233.2026" ou "Nº 142 2026"
   const requisicao = texto.match(/REQUISI[CÇ][AÃ]O DE EXAME[^\n]*?N[º°]\s*([0-9][0-9.,/\s]*\d)/i)
@@ -91,24 +258,34 @@ function extrairDoTexto(texto, configuracao) {
     dados.numeroRequisicao = dados.numeroRegistro;
   }
 
-  // Data da requisicao: "Data:" ou "DATA E HORA DO REGISTRO:"
-  const dataRequisicao = texto.match(/Data:\s*(\d{2}\/\d{2}\/\d{4})/)
+  // Data da requisicao/oficio: data de registro/protocolo, no cabecalho.
+  const cabecalho = texto.split(/Ref\.?:|Periciando\(a\):|Hist[óo]rico:/i)[0];
+  const dataRequisicao = cabecalho.match(/Data:\s*(\d{2}\/\d{2}\/\d{4})/)
     || texto.match(/DATA E HORA DO REGISTRO:[\s\S]{0,160}?(\d{2}\/\d{2}\/\d{4})/i);
   if (dataRequisicao) dados.dataRequisicao = dataRequisicao[1];
 
-  // Autoridade
-  const autoridade = texto.match(/Delegado\(a\) de Pol[íi]cia Civil:\s*([^\n]+)/i);
-  if (autoridade) {
-    const nome = limpar(autoridade[1]).replace(/\s*[|!—].*$/, '').trim();
-    if (!/^(Local|Data|Ref)/i.test(nome)) dados.autoridade = nome;
+  // Sexo: "Sexo: Feminino" ou "identidade de genero feminino".
+  const sexo = texto.match(/(?:sexo|identidade de g[êe]nero)\s*[:\s]+(feminino|masculino|n[ãa]o identificado)/i);
+  if (sexo) dados.sexo = capitalizar(sexo[1]);
+
+  // Estado civil: Uniao Estavel -> Solteiro(a).
+  const estadoCivil = texto.match(/estado civil\s*:?\s+([A-Za-zÀ-ÿ() ]+?)(?=,|\.|\s+identidade|\s+profiss|\s+filho|\n)/i);
+  if (estadoCivil) {
+    const valor = normalizarEstadoCivil(estadoCivil[1]);
+    if (valor) dados.estadoCivil = valor;
   }
 
-  // Orgao solicitante: a unidade que aparece no cabecalho
+  // Autoridade: a assinatura final prevalece; mesma pessoa usa a grafia do inicio.
+  const autoridade = extrairAutoridade(texto, nomesProibidos);
+  if (autoridade) dados.autoridade = autoridade;
+
+  // Orgao solicitante: a unidade que aparece no cabecalho.
   const padroesOrgao = [
-    /Central de Flagrantes de Campina Grande/i,
-    /Central de Pol[íi]cia Civil de Campina Grande/i,
+    /Central de Flagrantes[^\n]*/i,
+    /Central de Pol[íi]cia Civil[^\n]*/i,
+    /(?:\d{1,2}[º°ª]\s+)?Delegacia Distrital[^\n]*/i,
     /Delegacia Especializada[^\n]*/i,
-    /Delegacia Distrital de Campina Grande/i,
+    /Delegacia da Comarca[^\n]*/i,
     /Delegacia do Munic[íi]pio[^\n]*/i,
     /Delegacia de Pol[íi]cia Civil[^\n]*/i,
   ];
@@ -116,17 +293,22 @@ function extrairDoTexto(texto, configuracao) {
     const encontrado = texto.match(padrao);
     if (encontrado) {
       dados.orgao = limpar(encontrado[0])
-        .replace(/\s+(GOVERNO|Secretaria|ao O RAIBA|Beciana).*$/i, '')
+        .replace(/\s+(GOVERNO|GOVERA|Secretaria|ao O RAIBA|Beciana|DA\s+PARA[ÍI]BA|PARA[ÍI]BA|Ada\s+AA)[\s\S]*$/i, '')
         .replace(/\s*-\s*$/, '')
+        .replace(/[.,;]+$/, '')
         .trim();
       break;
     }
   }
 
-  // Destino do laudo
-  const destino = texto.match(/remeter o laudo para\s+([\s\S]*?)\.\s*(?:\n|$)/i);
+  // Destino do laudo: para antes do periciando/local/tipo da pagina seguinte.
+  const destino = texto.match(/remeter o laudo para\s+([\s\S]*?)(?=Periciando\(a\):|Local da Ocorr|Tipo do Local|$)/i);
   if (destino) {
-    dados.destinoExame = limpar(destino[1]);
+    dados.destinoExame = limpar(destino[1])
+      .replace(/\s*["“”'‘’|][\s\S]*$/, '')
+      .replace(/—\s*:\s*/g, '— ')
+      .replace(/[.,;:'"”|\s]+$/, '')
+      .trim();
   } else if (/NUMOL-CG/i.test(texto)) {
     dados.destinoExame = 'NUMOL-CG';
   }
@@ -145,16 +327,21 @@ function extrairDoTexto(texto, configuracao) {
   );
   if (nome) {
     const valor = limpar(nome[1]);
-    if (!/^(CPF|RG|CNH)/i.test(valor)) dados.nomeExaminado = valor;
+    if (!/^(CPF|RG|CNH)/i.test(valor) && !nomeProibido(valor, nomesProibidos)) {
+      dados.nomeExaminado = valor;
+    }
   }
 
-  // RG
-  const rgTrecho = texto.match(
-    /RG\s*n[º°]?\s*([\s\S]{0,40}?)(?=,|\s*(?:CPF|CNH|nacionalidade|$))/i,
-  );
+  // RG: numero + sigla do orgao emissor (qualquer sigla) + /UF.
+  const rgTrecho = texto.match(/\bR\.?G\.?\s*:?\s*n?[º°]?\s*([\dXx.\-\s]{4,20}?)\s*([A-Za-z]{2,10})\s*\/\s*([A-Za-z]{2})\b/i);
   if (rgTrecho) {
-    const digitos = somenteDigitos(rgTrecho[1]).slice(0, 15);
-    if (digitos.length >= 5) dados.rg = digitos;
+    const numero = rgTrecho[1].replace(/[^\dXx]/g, '').toUpperCase();
+    if (numero.length >= 5) {
+      dados.rg = numero;
+      dados.orgaoExpedidor = rgTrecho[2].toUpperCase();
+      const uf = rgTrecho[3].toUpperCase();
+      dados.ufExpedidor = UF_POR_SIGLA[uf] || uf;
+    }
   }
 
   // CPF
@@ -185,37 +372,84 @@ function extrairDoTexto(texto, configuracao) {
     /filho\(a\) de\s+([^,]+?)(?:\s+e\s+([^,]+))?,\s*natural/i,
   );
   if (filiacao) {
-    dados.nomeMae = limpar(filiacao[1]);
-    if (filiacao[2]) dados.nomePai = limpar(filiacao[2]);
+    const mae = limpar(filiacao[1]);
+    const pai = filiacao[2] ? limpar(filiacao[2]) : '';
+    if (!nomeProibido(mae, nomesProibidos)) dados.nomeMae = mae;
+    if (pai && !nomeProibido(pai, nomesProibidos)) dados.nomePai = pai;
   }
 
-  // Endereco de residencia
+  // Endereco de residencia: so o bloco de qualificacao. Para em telefone,
+  // quesitos, historico, periciando, local/tipo do local e demais rotulos.
   const endereco = texto.match(
-    /residente\s+e\s+domiciliad[oa]\(?a?\)?\s+(?:no\(a\)\s+)?([\s\S]*?)(?:telefone|Local da Ocorr|Tipo do Local|$)/i,
+    /(?:residente\s+e\s+domiciliad[oa]\(?a?\)?|residente|domiciliad[oa]\(?a?\)?)\s+(?:no\s*\(a\)|no\s+a|na|no)?\s*([\s\S]{0,260}?)(?=\s*(?:telefone|fone|celular|contato|e-?mail|quesitos?|\d{1,2}[º°]\s*quesito|\d{1,2}[º°]\s*\)|\d{1,2}[.)]\s+(?:Se|Qual|Há|H|Existe|O|A|Em|Caso|Houve|Provocou|Resultou)|[a-d][.)]\s+[A-ZÀ-Ý]|perguntas?|hist[óo]rico|relato|periciando|periciado|local da ocorr|tipo do local|cpf|rg|cnh|nacionalidade|profiss[ãa]o|filho|nascido|natural|data|hora|exame|ref\s*[.:]|procedimento|cep|$))/i,
   );
   if (endereco) {
-    dados.endereco = limpar(endereco[1])
-      .replace(/tendo como ponto de refer[êe]ncia/i, 'ponto de referência')
-      .replace(/\bna cidade de\b/gi, '')
+    let textoEndereco = limpar(endereco[1])
+      .replace(/\s*(?:tendo como\s+(?:ã\s+)?)?ponto de refer[eê]ncia[^,;]*/gi, '')
+      .replace(/\b(?:na\s+cidade|da\s+cidade|cidade)\s+de\b/gi, '')
+      .replace(/\b(?:na|da)\s+cidade\b/gi, '')
+      .replace(/\s*CEP\s*:?\s*[\d.\-]+/gi, '')
+      .replace(/\b(?:n[º°]|n\.|n[úu]m(?:ero|\.)?|bairro)\s*/gi, '')
       .replace(/\s*\/\s*/g, '/')
       .replace(/\.\s*,\s*/g, ', ')
+      .replace(/\s*,\s*,+/g, ',')
       .replace(/\s+,/g, ',')
       .replace(/[.,;]\s*$/, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    // Cidade/UF no fim: "..., Campina Grande/PB".
+    const cidadeUf = textoEndereco.match(/,\s*([^,]+?)\s*\/\s*([A-Z]{2})\s*$/i);
+    if (cidadeUf) {
+      dados.cidade = capitalizar(cidadeUf[1]);
+      const sigla = cidadeUf[2].toUpperCase();
+      dados.uf = UF_POR_SIGLA[sigla] || sigla;
+      textoEndereco = textoEndereco.slice(0, cidadeUf.index).replace(/,\s*$/, '').trim();
+    }
+
+    // Bairro: ultimo segmento, se nao for numero nem complemento.
+    const partes = textoEndereco.split(',').map((parte) => parte.trim()).filter(Boolean);
+    const complementos = /^(?:casa|apto?|apartamento|bloco|lote|quadra|edif[ií]cio|condom[ií]nio|fundos|sala|loja|andar|cobertura|kitnet|residencial)\b/i;
+    if (partes.length >= 2) {
+      const ultimo = partes[partes.length - 1];
+      const ehNumero = /^\d+[A-Za-z]?$/.test(ultimo);
+      const ehComplemento = complementos.test(ultimo);
+      if (!ehNumero && !ehComplemento) {
+        dados.bairro = capitalizar(ultimo);
+        partes.pop();
+      }
+    }
+
+    dados.endereco = partes.join(', ')
+      .replace(/\b(?:n[º°]|n\.|n[úu]m(?:ero|\.)?|bairro)\s*/gi, '')
+      .replace(/\s*,\s*,+/g, ',')
+      .replace(/\s+,/g, ',')
+      .replace(/[.,;]\s*$/, '')
+      .replace(/\s+/g, ' ')
       .trim();
   }
 
   // Local do fato
   const local = texto.match(/Local da Ocorr[êe]ncia:\s*([^\n]+)/i);
   if (local) {
-    dados.localFato = limpar(local[1]).replace(/[.;]\s*$/, '');
+    dados.localFato = limpar(local[1])
+      .replace(/\s*["“”'‘’|].*$/, '')
+      .replace(/[.,;:'"”|\s]+$/, '')
+      .trim();
   }
 
-  // Data/hora do fato
+  // Data/hora do fato: "Data: ... - Hora:", "Data/Hora:" ou a linha do Tipo do Local.
   const dataFato = texto.match(/Data:\s*(\d{2}\/\d{2}\/\d{4})\s*-\s*Hora:\s*(\d{2}\s*:\s*\d{2})/i)
     || texto.match(/Data\/Hora:\s*(\d{2}\/\d{2}\/\d{4})\s*(\d{2}:\d{2})/i)
     || texto.match(/Local da Ocorr[êe]ncia:[\s\S]*?(\d{2}\/\d{2}\/\d{4})\s*[àa]s\s*(\d{2}:\d{2})/i);
   if (dataFato) {
     dados.dataFato = `${dataFato[1]} ${String(dataFato[2]).replace(/\s/g, '')}`;
+  }
+  if (!dados.dataFato) {
+    const parcial = texto.match(/Tipo do Local:[\s\S]{0,140}?(?:Data\/Hora|Data)\s*:\s*(\d{2}\/\d{2}\/\d{4})?(?:\s*[-–]\s*Hora\s*:\s*|\s+)?(\d{2}:\d{2})?/i);
+    if (parcial && (parcial[1] || parcial[2])) {
+      dados.dataFato = [parcial[1], parcial[2]].filter(Boolean).join(' ');
+    }
   }
 
   // Historico/Relato
@@ -237,6 +471,27 @@ function extrairDoTexto(texto, configuracao) {
   }
 
   return dados;
+}
+
+/** Completa data do oficio e data do fato; nunca inventa data de nascimento. */
+function completarDatas(dados, avisos) {
+  const hoje = formatarData(new Date());
+
+  if (!dados.dataRequisicao) {
+    dados.dataRequisicao = hoje;
+    avisos.push('Data da requisicao ausente; preenchida com a data atual.');
+  }
+
+  if (!dados.dataFato) {
+    dados.dataFato = `${hoje} 00:00`;
+    avisos.push('Data do fato ausente; preenchida com a data atual e 00:00.');
+  } else if (/^\d{2}\/\d{2}\/\d{4}$/.test(dados.dataFato)) {
+    dados.dataFato += ' 00:00';
+    avisos.push('Hora do fato ausente; preenchida com 00:00.');
+  } else if (/^\d{2}:\d{2}$/.test(dados.dataFato)) {
+    dados.dataFato = `${hoje} ${dados.dataFato}`;
+    avisos.push('Data do fato ausente; preenchida com a data atual.');
+  }
 }
 
 function extrair(linhas, configuracao, linhasAlternativas) {
@@ -261,9 +516,17 @@ function extrair(linhas, configuracao, linhasAlternativas) {
   }
 
   const avisos = [];
+
+  // Só completa as datas quando a requisicao tem numero ou periciando: evita
+  // transformar um arquivo ilegivel em "valido" apenas pela data atual.
+  if (dados.numeroRequisicao || dados.nomeExaminado) {
+    completarDatas(dados, avisos);
+  }
+
   if (!dados.rg) {
     avisos.push('RG nao encontrado; o campo ficara em branco (aviso, nao bloqueia).');
   }
+
   const ausentes = (configuracao?.campos || [])
     .filter((campo) => campo.obrigatorio && !(campo.id in dados))
     .map((campo) => campo.descricao);

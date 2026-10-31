@@ -1,193 +1,106 @@
-# Preenchedor de Requisições de Exame
+# FillForm
 
-Assistente local que lê a requisição de exame (papel digitalizado, PDF ou imagem),
-extrai os dados e preenche o sistema oficial — **parando sempre antes do botão de
-cadastrar**.
+**Astak Systems**
 
-O operador confere os dados extraídos, pode corrigir, e conclui o cadastro com a
-própria mão.
+Ferramenta auxiliar de preenchimento automatizado de formulários, com extração de dados de requisições em PDF/imagem, OCR local e preenchimento assistido do sistema de destino.
 
-- **Custo zero.** Só bibliotecas gratuitas e de código aberto. Nenhuma API paga.
-- **100% local.** Nenhum dado sai da máquina. Sem nuvem, sem telemetria.
-- **Não invasivo.** Sem acesso a banco de dados ou API interna. Só o navegador.
-- **Determinístico.** Seletores fixos em arquivo de configuração. Nenhuma decisão
-  tomada por IA em tempo de execução.
-- **Nunca envia.** Existe uma proteção em código que recusa interagir com qualquer
-  botão de cadastrar, finalizar, enviar ou salvar.
+O FillForm foi projetado para reduzir o retrabalho de digitação sem assumir o controle do operador: ele lê o documento, monta os campos e preenche a tela campo a campo, sempre com conferência. **Nenhum botão de envio é clicado pela ferramenta.**
 
----
+## Principais recursos
 
-## Documentação
+- Leitura de PDFs digitais, PDFs escaneados e imagens.
+- OCR local com Tesseract.js, sem enviar documentos para a nuvem.
+- Extração configurável por rótulos e regras de negócio.
+- Preenchimento campo a campo com leitura de volta e conferência.
+- Regra de bloqueio por NIC para exames de NECROPSIA.
+- Proteção contra cliques acidentais em botões de envio.
+- Página de simulação para validação antes de usar o sistema oficial.
+- Relatórios de teste com tempo, acertos, falhas e valores não encontrados nas listas.
 
-| Documento | Para quem |
+## Tecnologias
+
+| Camada | Tecnologia |
 |---|---|
-| [Manual do operador](docs/manual-do-operador.md) | Quem usa a ferramenta no dia a dia |
-| [Guia de configuração](docs/guia-de-configuracao.md) | Quem configura campos, seletores e regras |
-| [Plano de testes](docs/plano-de-testes.md) | Quem valida e homologa |
+| Aplicação desktop | Electron |
+| OCR | Tesseract.js |
+| Automação do navegador | Playwright |
+| Leitura de PDF | pdfjs-dist |
+| Renderização de páginas | @napi-rs/canvas |
+| Linguagem | JavaScript (Node.js) |
 
----
+## Requisitos
+
+- Node.js 18.17 ou superior.
+- Windows 10/11 (o fluxo de janela e a simulação foram validados nesse ambiente).
+- Chrome/Chromium disponível para o Playwright.
 
 ## Instalação
 
-Requisitos: **Node.js 20+** e **Google Chrome** instalados.
-
-```bat
-npm install --ignore-scripts
+```bash
+git clone https://github.com/michaelcampina/astak-fillform.git
+cd astak-fillform
+npm install
 npm run idioma-ocr
-npm run exemplos
 ```
 
-| Comando | O que faz |
-|---|---|
-| `npm install --ignore-scripts` | Baixa as dependências sem executar scripts de terceiros |
-| `npm run idioma-ocr` | Prepara o idioma português do OCR (~6,7 MB) |
-| `npm run exemplos` | Gera as requisições de exemplo em `testes/fixtures` |
-
-Se a rede bloquear o download do Electron:
-
-```bat
-set electron_config_cache=%~dp0.electron-cache
-set ELECTRON_CACHE=%~dp0.electron-cache
-node node_modules\electron\install.js
-```
-
-Se a rede bloquear o download do idioma do OCR, copie a pasta `recursos/tessdata`
-de outra máquina onde a ferramenta já esteja instalada. O arquivo necessário é
-`por.traineddata.gz`.
-
----
+O comando `npm run idioma-ocr` baixa o pacote de idioma português usado pelo Tesseract. Ele precisa ser executado uma vez.
 
 ## Uso
 
-```bat
+```bash
 npm start
 ```
 
-1. Arraste a requisição para a janela, ou clique em **Escanear papel**.
-2. Confira os dados lidos — a tabela é editável.
-3. Clique em **Preencher o sistema**.
-4. Revise na tela do sistema e clique em *Cadastrar* você mesmo.
+1. Abra o FillForm.
+2. Selecione a requisição em PDF ou imagem.
+3. Confira os campos extraídos na tabela editável.
+4. Clique em **Preencher o sistema**.
+5. O operador abre o cadastro da vítima no sistema de destino, quando necessário.
+6. Revise os campos preenchidos antes de finalizar manualmente.
 
-Na primeira vez, o Chrome abre na tela de login: entre normalmente. A sessão fica
-gravada no perfil `perfis/chrome-operador` e é reaproveitada nas próximas vezes.
+O preenchimento é feito na página de simulação por padrão. Para apontar para o sistema oficial, configure os seletores em `config/seletores.json` (bloco `sistemaOficial`). Enquanto houver qualquer `SUBSTITUIR` nesse bloco, a ferramenta se recusa a abrir o navegador.
 
----
+## Estrutura do projeto
+
+```text
+config/                 Configuração de campos, seletores e formatação
+docs/                   Documentação e plano de testes
+recursos/               Recursos locais (idioma do OCR)
+simulacao/              Página de simulação do formulário
+src/                    Código da aplicação (Electron, extração, preenchimento)
+testes/                 Testes automatizados e runners de lote
+```
+
+## Configuração
+
+- `config/campos.json`: campos extraídos, rótulos, formatos e obrigatoriedade.
+- `config/seletores.json`: seletores da simulação e do sistema oficial.
+- `config/formatacao.json`: regras de formatação (data, CPF, RG etc.).
+- `config/diretores.json`: nomes que nunca devem ser usados como autoridade ou nome de pessoa.
 
 ## Testes
 
-```bat
-npm test                    :: extração + preenchimento
-npm run teste:extracao      :: só a leitura dos documentos
-npm run teste:preenchimento :: só o preenchimento na simulação
-npm run teste:janela        :: fluxo completo dentro da janela real
-npm run requisicao-real -- "a.pdf" "b.pdf"              :: uma ou mais requisições reais
-npm run teste:lote -- "a.pdf" "b.pdf"                    :: lote de PDFs, so extracao
-npm run atualizar-listas -- "testes\saida\lote-requisicoes-....json"  :: listas da simulacao
+```bash
+npm test                 # extração, simulação e preenchimento
+npm run teste:janela     # fluxo da janela Electron
+npm run teste:lote -- "a.pdf" "b.pdf"
+npm run requisicao-real -- "requisicao.pdf"
 ```
 
-O relatório sai em `testes/saida/relatorio-<data>.md`. Para a requisição real, sai
-`requisicao-real-<data>.md` (com JSON, tempos e o que passou/falhou).
+Os relatórios são gravados em `testes/saida/`, que não é versionado.
 
-Resultado atual:
+## Privacidade e segurança
 
-```
-Extração — PDF digital    [OK]  18/18
-Extração — PDF escaneado  [OK]  18/18   OCR 94%
-Extração — Imagem         [OK]  18/18   OCR 95%
-Preenchimento             [OK]  18 campos verificados
-                               nenhum clique de envio; nada cadastrado
-TODOS OS TESTES PASSARAM
+- O OCR e a extração acontecem localmente.
+- Os documentos reais de requisição ficam em `requisições/` e são ignorados pelo Git.
+- Perfis de navegador, logs e relatórios de teste também são ignorados.
+- A ferramenta não clica em botões de envio nem cadastra registros.
+- A decisão final e o envio continuam sendo do operador.
 
-Janela (Electron + clique real no botão)
-                          [OK]  18 campos, parou em "Pronto para revisão"
-JANELA: FLUXO COMPLETO APROVADO
-```
+## Licença
+
+Projeto interno da **Astak Systems**. Todos os direitos reservados.
 
 ---
 
-## Como funciona
-
-```
-requisição (PDF/imagem/papel)
-        |
-        v
-  [ leitura ]  PDF com texto -> extração direta
-        |      PDF escaneado ou imagem -> render + OCR (Tesseract)
-        v
-  [ extração ]  localização por rótulo, captura de valor, formatação
-        |
-        v
-  [ conferência ]  tabela editável para o operador
-        |
-        v
-  [ preenchimento ]  Playwright conduz o Chrome: aba por aba, campo por campo
-        |            cada campo é relido e comparado
-        v
-  [ PARADA ]  a ferramenta para. O operador conclui.
-```
-
-### Estrutura
-
-```
-config/                  configuração (nada de seletor no código)
-  configuracao.json        modo, leitura, navegador, scanner, logs
-  campos.json              campos da requisição e como reconhecê-los
-  seletores.json           onde cada campo está no sistema
-  formatacao.json          regras de limpeza por tipo
-src/
-  main.js                  processo principal do Electron
-  preload.js               ponte segura para a interface
-  interface/               janela (HTML, CSS, JS)
-  captura/scanner.js       digitalização via WIA do Windows
-  extracao/                pdf.js, Tesseract.js, rótulos, formatação
-  preenchimento/           Playwright, campos, sessão, protetor anti-envio
-  nucleo/                  configuração e registro de log
-simulacao/               página que imita o sistema (6 abas) + bases do IBGE
-testes/                  fixtures, gabarito e executor
-docs/                    manual, configuração e plano de testes
-```
-
-### Proteções contra envio indevido
-
-Três camadas independentes:
-
-1. **Validação da configuração** — recusa iniciar se algum seletor apontar para
-   controle de envio ou ainda estiver como `SUBSTITUIR`.
-2. **Protetor em tempo de execução** — avalia cada elemento antes de clicar ou
-   digitar. Bloqueia por texto, `type="submit"`, `id`, `name` ou seletor proibido.
-3. **Ausência de gatilho** — a ferramenta nunca pressiona Enter, nunca clica em
-   botão de ação final e nunca chama `form.submit()`. Para sair de um campo usa
-   Tab.
-
-O teste automatizado comprova: `window.__cliquesDeEnvio === 0`.
-
----
-
-## Privacidade
-
-- Os dados extraídos ficam **só na memória**. Fechou a janela, sumiram.
-- O log registra nomes de campo, contagens, confiança do OCR e tamanhos — **nunca
-  o conteúdo**: sem nome, sem CPF, sem endereço.
-- A pasta `perfis/` guarda a sessão do navegador e não deve ser versionada.
-- Nenhuma requisição HTTP sai da máquina, exceto a que o próprio Chrome faz para o
-  sistema interno ao preencher.
-
----
-
-## Limitações conhecidas
-
-- **O scanner não foi testado com hardware real** neste desenvolvimento — não
-  havia aparelho disponível. O caminho WIA está implementado e o diagnóstico de
-  "nenhum scanner detectado" foi verificado.
-- **O bloco `sistemaOficial` de `seletores.json` está como `SUBSTITUIR`.** Precisa
-  ser preenchido com os seletores reais do sistema da instituição. A ferramenta se
-  recusa a rodar contra o sistema real antes disso.
-- **Precisão do OCR** depende da qualidade do documento. Ver
-  [plano de testes, seção 4](docs/plano-de-testes.md#4-observações-sobre-precisão-do-ocr)
-  para as alternativas gratuitas.
-- **Campos pesquisáveis com nomes ambíguos** fazem a ferramenta parar de propósito.
-  É uma escolha de projeto, não um defeito.
-- **Ambientes com `%TEMP%` restrito** (política corporativa ou sandbox de execução)
-  impedem o Playwright de criar sua pasta de artefatos. A ferramenta detecta isso,
-  passa a usar `logs/tmp` e avisa no log. Ver
-  [plano de testes, caso 2.10](docs/plano-de-testes.md#210-pasta-temporária-do-windows-restrita).
+**Astak Systems** · FillForm

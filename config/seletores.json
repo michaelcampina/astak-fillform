@@ -83,10 +83,17 @@
         "campos": [
           { "campo": "nomeExaminado", "tipo": "texto", "seletor": "#nomeVitima" },
           { "campo": "dataNascimento", "tipo": "texto", "seletor": "#dataNascimentoVitima" },
+          { "campo": "sexo", "tipo": "selectNativo", "seletor": "#sexo" },
+          { "campo": "estadoCivil", "tipo": "selectNativo", "seletor": "#estadoCivil" },
           { "campo": "rg", "tipo": "texto", "seletor": "#rgVitima" },
+          { "campo": "orgaoExpedidor", "tipo": "texto", "seletor": "#orgaoExpedidor" },
+          { "campo": "ufExpedidor", "tipo": "selectNativo", "seletor": "#ufExpedidor" },
           { "campo": "cpf", "tipo": "texto", "seletor": "#cpfVitima" },
           { "campo": "nomeMae", "tipo": "texto", "seletor": "#nomeMae" },
           { "campo": "nomePai", "tipo": "texto", "seletor": "#nomePai" },
+          { "campo": "uf", "tipo": "selectNativo", "seletor": "#ufResidencia" },
+          { "campo": "cidade", "tipo": "selectNativo", "seletor": "#cidadeResidencia" },
+          { "campo": "bairro", "tipo": "selectNativo", "seletor": "#bairroResidencia" },
           { "campo": "endereco", "tipo": "texto", "seletor": "#enderecoVitima" }
         ]
       }

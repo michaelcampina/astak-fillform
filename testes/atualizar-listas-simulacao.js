@@ -19,7 +19,7 @@ const RAIZ = path.resolve(__dirname, '..');
 const SAIDA = path.join(RAIZ, 'testes', 'saida');
 const PAGINA = path.join(RAIZ, 'simulacao', 'sistema-simulado.html');
 
-const LIXO_ORGAO = /(assola|tao |ntça|SU db|Dotena|Becietaria|Secretario|Saeao|enecadtocas|aeee|Defesa Social|PARAÍBA|\bHH\b|Ontena|Bacim|Tº|\d+\*|\d+"|\*|—\s*:|—\s*[A-Z]$|—\s*\d$|—\s*Delegacia(?:\s+do)?$|—\s*Central$|—$)/i;
+const LIXO_ORGAO = /(assola|tao |ntça|SU db|Dotena|Becietaria|Secretario|Saeao|enecadtocas|aeee|Defesa Social|PARAÍBA|\bHH\b|Ontena|Bacim|Tº|GOVERA|Ada\s+AA|DA\s+PARA[ÍI]BA|\d+\*|\d+"|\*|—\s*:|—\s*[A-Z]$|—\s*\d$|—\s*Delegacia(?:\s+do)?$|—\s*Central$|—$)/i;
 
 function ultimoLote() {
   const arquivos = fs
@@ -37,7 +37,7 @@ function limparOrgao(valor) {
   let texto = String(valor ?? '')
     .replace(/\s*Periciando[\s\S]*$/i, '')
     .replace(/\s*["“”'‘’][\s\S]*$/, '')
-    .replace(/\s+(?:GOVERNO|Secretaria|\bBO\b|PARAÍBA|ao O RAIBA|Beciana)[\s\S]*$/i, '')
+    .replace(/\s+(?:GOVERNO|GOVERA|Secretaria|\bBO\b|PARAÍBA|DA\s+PARAÍBA|ao O RAIBA|Beciana|Ada\s+AA)[\s\S]*$/i, '')
     .replace(/\s*[|!][\s\S]*$/, '')
     .replace(/\s+e\s*$/i, '')
     .replace(/[.,;:]+$/, '')
@@ -55,6 +55,9 @@ function limparAutoridade(valor) {
     .replace(/\s+(?:AA|a)\s*$/i, '')
     .replace(/\s+[A-Za-z]?\s*\d[\s\S]*$/i, '')
     .replace(/\s*[|!—][\s\S]*$/, '')
+    .replace(/^[^A-Za-zÀ-Ý]+/, '')
+    .replace(/^[A-Za-zÀ-Ý]\s+/, '')
+    .replace(/^[^A-Za-zÀ-Ý]+/, '')
     .replace(/[.,;:'"”\s]+$/, '')
     .replace(/\s+/g, ' ')
     .trim();

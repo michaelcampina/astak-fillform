@@ -221,7 +221,8 @@ async function preencherSelectNativo(pagina, definicao, valor, contexto, proteto
   const encontrada =
     opcoesDisponiveis.find((o) => comparavel(o.valor) === alvo) ||
     opcoesDisponiveis.find((o) => comparavel(o.texto) === alvo) ||
-    opcoesDisponiveis.find((o) => normalizar(o.texto) === alvoNormalizado);
+    opcoesDisponiveis.find((o) => normalizar(o.texto) === alvoNormalizado) ||
+    opcoesDisponiveis.find((o) => normalizar(o.texto).replace(/\(a\)/g, '') === alvoNormalizado.replace(/\(a\)/g, ''));
 
   if (!encontrada) {
     const amostra = opcoesDisponiveis.slice(0, 8).map((o) => o.texto).join(' | ');

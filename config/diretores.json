@@ -1,0 +1,12 @@
+{
+  "_comentario": [
+    "Nomes e cargos que NUNCA devem ser usados como autoridade ou nome de pessoa.",
+    "O diretor da unidade de destino (NUMOL/NULF) entra aqui. O nome pode mudar com o tempo.",
+    "O extrator tambem capta dinamicamente a linha 'Dr(a). NOME' como diretor."
+  ],
+  "nomes": [
+    "Carlos Alberto Figueiredo Filho",
+    "Euzébio Soares de Araújo"
+  ],
+  "cargos": ["Diretor", "NUMOL", "NULF"]
+}

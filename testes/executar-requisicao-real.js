@@ -373,6 +373,10 @@ function montarRelatorio({
   linhas.push(`- Digitados fora da lista (valor permaneceu): ${fora.length}`);
   linhas.push(`- Falhas: ${falhas.length}`);
   linhas.push(`- Sem dado extraído: ${semDado.length}`);
+  const avaliados = ok.length + fora.length + falhas.length;
+  const total = avaliados + semDado.length;
+  linhas.push(`- Nível de acerto de preenchimento: ${avaliados ? ((ok.length / avaliados) * 100).toFixed(1) : '0.0'}% (${ok.length}/${avaliados})`);
+  linhas.push(`- Nível de acerto de extração: ${total ? (((ok.length + fora.length) / total) * 100).toFixed(1) : '0.0'}% (${ok.length + fora.length}/${total})`);
   linhas.push(`- Cliques de envio: ${cliques} (${cadastrada ? 'ALGO FOI CADASTRADO' : 'nada foi cadastrado'})`);
   linhas.push('');
 
@@ -380,11 +384,19 @@ function montarRelatorio({
 }
 
 function resumoRegistros(registros) {
+  const ok = registros.filter((r) => r.status === 'ok').length;
+  const fora = registros.filter((r) => r.status === 'fora-da-lista').length;
+  const falhas = registros.filter((r) => r.status === 'falha').length;
+  const semDado = registros.filter((r) => r.status === 'sem-dado').length;
+  const avaliados = ok + fora + falhas;
+  const total = avaliados + semDado;
   return {
-    ok: registros.filter((r) => r.status === 'ok').length,
-    fora: registros.filter((r) => r.status === 'fora-da-lista').length,
-    falhas: registros.filter((r) => r.status === 'falha').length,
-    semDado: registros.filter((r) => r.status === 'sem-dado').length,
+    ok,
+    fora,
+    falhas,
+    semDado,
+    acertoPreenchimento: avaliados > 0 ? (ok / avaliados) * 100 : 0,
+    acertoExtracao: total > 0 ? ((ok + fora) / total) * 100 : 0,
   };
 }
 
@@ -541,18 +553,40 @@ function montarConsolidado(resultados, cfg) {
   linhas.push('');
 
   linhas.push('## Resumo', '');
-  linhas.push('| Arquivo | Preenchidos | Fora da lista | Falhas | Sem dado | Cliques de envio | Extração | Preenchimento | Verificação |');
-  linhas.push('|---|---|---|---|---|---|---|---|---|');
+  linhas.push('| Arquivo | Preenchidos | Fora da lista | Falhas | Sem dado | Acerto | Cliques de envio | Extração | Preenchimento | Verificação |');
+  linhas.push('|---|---|---|---|---|---|---|---|---|---|');
   for (const r of resultados) {
     if (r.erro) {
-      linhas.push(`| ${path.basename(r.caminho)} | - | - | - | - | - | ${(r.msExtracao / 1000).toFixed(2)} s | - | - |`);
+      linhas.push(`| ${path.basename(r.caminho)} | - | - | - | - | - | - | ${(r.msExtracao / 1000).toFixed(2)} s | - | - |`);
       continue;
     }
     const s = resumoRegistros(r.registros);
     linhas.push(
-      `| ${path.basename(r.caminho)} | ${s.ok} | ${s.fora} | ${s.falhas} | ${s.semDado} | ${r.cliques} | ${(r.msExtracao / 1000).toFixed(2)} s | ${(r.msPreenchimento / 1000).toFixed(2)} s | ${(r.msVerificacoes / 1000).toFixed(2)} s |`,
+      `| ${path.basename(r.caminho)} | ${s.ok} | ${s.fora} | ${s.falhas} | ${s.semDado} | ${s.acertoPreenchimento.toFixed(1)}% | ${r.cliques} | ${(r.msExtracao / 1000).toFixed(2)} s | ${(r.msPreenchimento / 1000).toFixed(2)} s | ${(r.msVerificacoes / 1000).toFixed(2)} s |`,
     );
   }
+  linhas.push('');
+
+  const validos = comExtracao;
+  let totalOk = 0;
+  let totalFora = 0;
+  let totalFalhas = 0;
+  let totalSemDado = 0;
+  for (const r of validos) {
+    const s = resumoRegistros(r.registros || []);
+    totalOk += s.ok;
+    totalFora += s.fora;
+    totalFalhas += s.falhas;
+    totalSemDado += s.semDado;
+  }
+  const avaliados = totalOk + totalFora + totalFalhas;
+  const totalCampos = avaliados + totalSemDado;
+  linhas.push(
+    `- **Acerto de preenchimento:** ${avaliados ? ((totalOk / avaliados) * 100).toFixed(1) : '0.0'}% (${totalOk}/${avaliados})`,
+  );
+  linhas.push(
+    `- **Acerto de extração:** ${totalCampos ? (((totalOk + totalFora) / totalCampos) * 100).toFixed(1) : '0.0'}% (${totalOk + totalFora}/${totalCampos})`,
+  );
   linhas.push('');
 
   const todasVerificacoes = [];
@@ -579,14 +613,37 @@ function montarConsolidado(resultados, cfg) {
 }
 
 async function main() {
-  const caminhos = process.argv.slice(2).filter(Boolean);
+  const argumentos = process.argv.slice(2);
+  const manterAberto = argumentos.includes('--manter-aberto');
+  const indicePasta = argumentos.indexOf('--pasta');
+  const pastaArg = indicePasta >= 0 ? argumentos[indicePasta + 1] : null;
+  let caminhos = argumentos.filter((arg, indice) => (
+    arg !== '--pasta' && arg !== '--manter-aberto'
+    && (indicePasta < 0 || indice !== indicePasta + 1)
+  ));
+
+  if (pastaArg) {
+    const pasta = path.resolve(pastaArg);
+    if (!fs.existsSync(pasta) || !fs.statSync(pasta).isDirectory()) {
+      console.error('Pasta nao encontrada: ' + pasta);
+      process.exit(1);
+    }
+    caminhos = fs.readdirSync(pasta)
+      .filter((nome) => /\.pdf$/i.test(nome))
+      .sort((a, b) => a.localeCompare(b, 'pt-BR'))
+      .map((nome) => path.join(pasta, nome));
+  }
+
   if (caminhos.length === 0) {
-    console.error('Informe ao menos um caminho. Exemplo: node testes/executar-requisicao-real.js "C:\\...\\requisicao.pdf"');
+    console.error('Informe ao menos um caminho ou use --pasta "requisições".');
     process.exit(1);
   }
 
   fs.mkdirSync(SAIDA, { recursive: true });
   const cfg = config.carregar();
+  if (manterAberto) {
+    cfg.geral.navegador.headless = false;
+  }
   registro.configurar(path.join(SAIDA, 'logs'), 'AVISO');
 
   const marcador = carimbo();
@@ -619,7 +676,9 @@ async function main() {
       }
     }
   } finally {
-    await sessao.encerrar(true);
+    if (!manterAberto) {
+      await sessao.encerrar(true);
+    }
     await ocr.encerrar().catch(() => {});
   }
 
@@ -651,6 +710,10 @@ async function main() {
   console.log('JSON consolidado: ' + path.relative(RAIZ, baseLote + '.json'));
 
   const falhas = resultados.filter((r) => r.erro).length;
+  if (manterAberto) {
+    console.log('\nA janela do Chrome foi mantida aberta para inspecao manual. Feche-a quando terminar.');
+    return;
+  }
   process.exit(falhas > 0 ? 1 : 0);
 }
 

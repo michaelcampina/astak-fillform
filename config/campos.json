@@ -77,6 +77,20 @@
       "obrigatorio": true
     },
     {
+      "id": "sexo",
+      "descricao": "Sexo",
+      "rotulos": ["Sexo"],
+      "formato": "texto",
+      "obrigatorio": false
+    },
+    {
+      "id": "estadoCivil",
+      "descricao": "Estado civil",
+      "rotulos": ["Estado Civil"],
+      "formato": "texto",
+      "obrigatorio": false
+    },
+    {
       "id": "nomeMae",
       "descricao": "Nome da mae",
       "rotulos": ["Nome da Mae", "Nome da Mãe", "Mae", "Mãe"],
@@ -99,6 +113,20 @@
       "obrigatorio": false
     },
     {
+      "id": "orgaoExpedidor",
+      "descricao": "Orgao expedidor do RG",
+      "rotulos": ["Orgao Expedidor", "Órgão Expedidor"],
+      "formato": "texto",
+      "obrigatorio": false
+    },
+    {
+      "id": "ufExpedidor",
+      "descricao": "UF expedidora do RG",
+      "rotulos": ["UF Expedidor"],
+      "formato": "texto",
+      "obrigatorio": false
+    },
+    {
       "id": "cpf",
       "descricao": "CPF",
       "rotulos": ["CPF", "C.P.F."],
@@ -111,6 +139,27 @@
       "rotulos": ["Endereco", "Endereço", "Residencia", "Residência"],
       "formato": "texto",
       "obrigatorio": true
+    },
+    {
+      "id": "bairro",
+      "descricao": "Bairro de residencia",
+      "rotulos": ["Bairro"],
+      "formato": "texto",
+      "obrigatorio": false
+    },
+    {
+      "id": "cidade",
+      "descricao": "Cidade de residencia",
+      "rotulos": ["Cidade"],
+      "formato": "texto",
+      "obrigatorio": false
+    },
+    {
+      "id": "uf",
+      "descricao": "UF de residencia",
+      "rotulos": ["UF"],
+      "formato": "texto",
+      "obrigatorio": false
     },
     {
       "id": "localFato",

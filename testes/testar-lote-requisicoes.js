@@ -31,9 +31,27 @@ function fmtSegundos(ms) {
 }
 
 async function main() {
-  const caminhos = process.argv.slice(2).filter(Boolean);
+  const argumentos = process.argv.slice(2);
+  const indicePasta = argumentos.indexOf('--pasta');
+  const pastaArg = indicePasta >= 0 ? argumentos[indicePasta + 1] : null;
+  let caminhos = argumentos.filter((arg, indice) => (
+    arg !== '--pasta' && (indicePasta < 0 || indice !== indicePasta + 1)
+  ));
+
+  if (pastaArg) {
+    const pasta = path.resolve(pastaArg);
+    if (!fs.existsSync(pasta) || !fs.statSync(pasta).isDirectory()) {
+      console.error('Pasta nao encontrada: ' + pasta);
+      process.exit(1);
+    }
+    caminhos = fs.readdirSync(pasta)
+      .filter((nome) => /\.pdf$/i.test(nome))
+      .sort((a, b) => a.localeCompare(b, 'pt-BR'))
+      .map((nome) => path.join(pasta, nome));
+  }
+
   if (caminhos.length === 0) {
-    console.error('Informe os caminhos dos PDFs.');
+    console.error('Informe os caminhos dos PDFs ou use --pasta "requisições".');
     process.exit(1);
   }
 

@@ -407,7 +407,19 @@ Lê o JSON do lote, pega os valores únicos de `orgao`, `destinoExame` e
 `sistema-simulado.html`. As listas fictícias são preservadas para os testes.
 
 **Esperado:** os três campos passam de "fora-da-lista" para "ok" no teste real.
-No último lote, as listas ficaram com 34 órgãos/destinos e 22 autoridades.
+O lote de 114 ampliou as listas; as opções reais convivem com as fictícias.
+
+### 2.18 Lote final de preenchimento
+
+O lote de 114 é dividido em 3 blocos de 38. Cada bloco gera um JSON de
+`lote-preenchimento`; o consolidador final junta os três:
+
+```bat
+npm run consolidar-preenchimento -- "bloco1.json" "bloco2.json" "bloco3.json"
+```
+
+**Esperado:** relatório final com o nível de acerto por arquivo e global, as
+falhas, os valores fora da lista e `cliquesDeEnvio = 0`.
 
 ---
 

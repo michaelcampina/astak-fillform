@@ -21,3 +21,6 @@ recursos/tessdata/*.gz
 .tmp-*
 tmp-*
 *.log
+
+# Requisicoes reais: PDFs pesados e dados sensiveis. NUNCA versionar.
+requisições/

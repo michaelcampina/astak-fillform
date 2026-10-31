@@ -169,6 +169,7 @@ async function processar(entrada, configuracao, aoProgredir = () => {}) {
       // Quando o documento parece uma requisicao, o OCR do projeto le melhor.
       // A camada digital fica como fonte alternativa para numeros truncados.
       const pareceRequisicao = layoutRequisicaoPb.detectar(linhas)
+        || /REQUISI[CÇ][AÃ]O DE EXAME(?!\s+PERICIAL)/i.test(textoDigital)
         || /Ref\.?:\s*(?:BO|APF|80)/i.test(textoDigital)
         || /Delegado\(a\) de Pol[íi]cia Civil/i.test(textoDigital)
         || /Hist[óo]rico:/i.test(textoDigital);
